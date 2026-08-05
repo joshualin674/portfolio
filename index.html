@@ -1928,7 +1928,7 @@ body[data-mode="play"] .doodle.play-only { display: block; }
      not just position — so nothing "snaps" into place at the end.
      Reused by both carousels (play calls window.initSwipeDrag below). ------- */
   window.initSwipeDrag = function (stageEl, nextFn, prevFn, guardFn) {
-    var touchX = null, touchY = null, touchLocked = null, snap = null;
+    var touchX = null, touchY = null, touchLocked = null, snap = null, shift = 0;
     var peekScaleVal = parseFloat(
       getComputedStyle(document.documentElement).getPropertyValue("--peek-scale")
     ) || 0.9;
@@ -1957,6 +1957,11 @@ body[data-mode="play"] .doodle.play-only { display: block; }
         peekLeft: stageEl.querySelector(".unit.is-peek-left"),
         peekRight: stageEl.querySelector(".unit.is-peek-right")
       };
+      shift = stageEl.getBoundingClientRect().width / 2; /* actual distance
+        from the center slot to a peek slot — the card has to travel this
+        far to reach its new position, not just however far the finger
+        moved, or it ends up fully "grown" while still nowhere near
+        its target, which is what was overlapping */
       [snap.focused, snap.peekLeft, snap.peekRight].forEach(function (el) {
         if (el) el.style.transition = "none";
       });
@@ -1976,25 +1981,26 @@ body[data-mode="play"] .doodle.play-only { display: block; }
 
       var t = Math.max(-1, Math.min(1, dx / REVEAL_PX));
       var a = Math.abs(t);
+      var sharedX = t * shift; /* the card's real, full travel distance at
+        this point in the gesture — reaches exactly the neighboring slot's
+        position at |t|=1, matching where the class-based state will land */
 
-      /* the focused card shrinks/dims/blurs as it's dragged away, in
-         either direction — it's always the one leaving */
-      paint(snap.focused, dx, lerp(1, peekScaleVal, a), lerp(1, 0.71, a), lerp(0, 1, a));
+      /* the focused card shrinks/dims/blurs AND moves toward the slot
+         it's exiting to, in lockstep — it's always the one leaving */
+      paint(snap.focused, sharedX, lerp(1, peekScaleVal, a), lerp(1, 0.71, a), lerp(0, 1, a));
 
       /* whichever peek is in the drag's direction grows/brightens/
-         sharpens toward full size as it becomes the new focused card;
-         the other peek just tracks the finger without transforming */
+         sharpens AND moves toward center, in the same lockstep. the
+         other peek is left alone entirely — it already transitions
+         correctly (peek -> hidden) via its normal CSS transition the
+         instant the class change lands, no need to hand-animate it */
       if (t < 0 && snap.peekRight) {
         var t2 = -t;
-        paint(snap.peekRight, dx, lerp(peekScaleVal, 1, t2), lerp(0.71, 1, t2), lerp(1, 0, t2));
-      } else if (snap.peekRight) {
-        paint(snap.peekRight, dx, peekScaleVal, 0.71, 1);
+        paint(snap.peekRight, sharedX, lerp(peekScaleVal, 1, t2), lerp(0.71, 1, t2), lerp(1, 0, t2));
       }
       if (t > 0 && snap.peekLeft) {
         var t3 = t;
-        paint(snap.peekLeft, dx, lerp(peekScaleVal, 1, t3), lerp(0.71, 1, t3), lerp(1, 0, t3));
-      } else if (snap.peekLeft) {
-        paint(snap.peekLeft, dx, peekScaleVal, 0.71, 1);
+        paint(snap.peekLeft, sharedX, lerp(peekScaleVal, 1, t3), lerp(0.71, 1, t3), lerp(1, 0, t3));
       }
     }, { passive: false });
 
