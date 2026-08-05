@@ -88,6 +88,7 @@
 * { margin: 0; padding: 0; box-sizing: border-box; }
 html, body { height: 100%; }
 
+html { overflow-x: hidden; }
 body {
   background: var(--bg);
   color: var(--ink-85);
@@ -839,7 +840,7 @@ body.no-splash .page > * { opacity: 1; transition: none; }
     --dot-size: 6px;
     --ty: 0;
   }
-  body { overflow-y: auto; }
+  body { overflow-y: auto; overflow-x: hidden; }
 
   .identity {
     position: fixed;
@@ -1916,24 +1917,33 @@ body[data-mode="play"] .doodle.play-only { display: block; }
     if (e.key === "ArrowLeft")  { if (inPlay) { if (window.playPrev) window.playPrev(); } else prev(); }
   });
 
-  var touchX = null, touchY = null;
+  var touchX = null, touchY = null, touchLocked = null;
   var stageEl = document.getElementById("stage");
   stageEl.addEventListener("touchstart", function (e) {
     touchX = e.changedTouches[0].clientX;
     touchY = e.changedTouches[0].clientY;
+    touchLocked = null;
   }, { passive: true });
+  stageEl.addEventListener("touchmove", function (e) {
+    if (touchX === null) return;
+    var dx = e.touches[0].clientX - touchX;
+    var dy = e.touches[0].clientY - touchY;
+    if (touchLocked === null && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+      touchLocked = Math.abs(dx) > Math.abs(dy) * 1.5; /* decide once, early */
+    }
+    if (touchLocked) e.preventDefault(); /* claim the gesture fully —
+      no native scroll, no address-bar reveal, no page shift */
+  }, { passive: false });
   stageEl.addEventListener("touchend", function (e) {
     if (touchX === null) return;
-    if (document.body.classList.contains("case-open")) { touchX = touchY = null; return; }
-    if (document.body.dataset.mode === "play") { touchX = touchY = null; return; }
+    if (document.body.classList.contains("case-open")) { touchX = touchY = touchLocked = null; return; }
+    if (document.body.dataset.mode === "play") { touchX = touchY = touchLocked = null; return; }
     var dx = e.changedTouches[0].clientX - touchX;
     var dy = e.changedTouches[0].clientY - touchY;
-    /* only treat it as a swipe if it's clearly more horizontal than
-       vertical — otherwise a diagonal scroll can misfire navigation */
     if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
       if (dx < 0) next(); else prev();
     }
-    touchX = touchY = null;
+    touchX = touchY = touchLocked = null;
   }, { passive: true });
 
   /* ------- Custom circular cursor (fine pointers only) ------- */
@@ -2344,12 +2354,22 @@ body[data-mode="play"] .doodle.play-only { display: block; }
   if (pPrev) pPrev.addEventListener("click", window.playPrev);
   if (pNext) pNext.addEventListener("click", window.playNext);
 
-  var pTouchX = null, pTouchY = null;
+  var pTouchX = null, pTouchY = null, pTouchLocked = null;
   if (pStage) {
     pStage.addEventListener("touchstart", function (e) {
       pTouchX = e.changedTouches[0].clientX;
       pTouchY = e.changedTouches[0].clientY;
+      pTouchLocked = null;
     }, { passive: true });
+    pStage.addEventListener("touchmove", function (e) {
+      if (pTouchX === null) return;
+      var dx = e.touches[0].clientX - pTouchX;
+      var dy = e.touches[0].clientY - pTouchY;
+      if (pTouchLocked === null && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+        pTouchLocked = Math.abs(dx) > Math.abs(dy) * 1.5;
+      }
+      if (pTouchLocked) e.preventDefault();
+    }, { passive: false });
     pStage.addEventListener("touchend", function (e) {
       if (pTouchX === null) return;
       var dx = e.changedTouches[0].clientX - pTouchX;
@@ -2357,7 +2377,7 @@ body[data-mode="play"] .doodle.play-only { display: block; }
       if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
         if (dx < 0) window.playNext(); else window.playPrev();
       }
-      pTouchX = pTouchY = null;
+      pTouchX = pTouchY = pTouchLocked = null;
     }, { passive: true });
   }
   render();
