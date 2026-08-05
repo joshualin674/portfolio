@@ -1923,51 +1923,105 @@ body[data-mode="play"] .doodle.play-only { display: block; }
     if (e.key === "ArrowLeft")  { if (inPlay) { if (window.playPrev) window.playPrev(); } else prev(); }
   });
 
-  var touchX = null, touchY = null, touchLocked = null, stageCleanupTimer = null;
-  var stageEl = document.getElementById("stage");
-  stageEl.addEventListener("touchstart", function (e) {
-    clearTimeout(stageCleanupTimer);
-    touchX = e.changedTouches[0].clientX;
-    touchY = e.changedTouches[0].clientY;
-    touchLocked = null;
-    stageEl.style.transition = "none";
-  }, { passive: true });
-  stageEl.addEventListener("touchmove", function (e) {
-    if (touchX === null) return;
-    var dx = e.touches[0].clientX - touchX;
-    var dy = e.touches[0].clientY - touchY;
-    if (touchLocked === null && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
-      touchLocked = Math.abs(dx) > Math.abs(dy) * 1.5; /* decide once, early */
+  /* ------- Shared swipe-drag engine: each visible card interpolates
+     its own scale/opacity/blur continuously as the finger moves —
+     not just position — so nothing "snaps" into place at the end.
+     Reused by both carousels (play calls window.initSwipeDrag below). ------- */
+  window.initSwipeDrag = function (stageEl, nextFn, prevFn, guardFn) {
+    var touchX = null, touchY = null, touchLocked = null, snap = null;
+    var peekScaleVal = parseFloat(
+      getComputedStyle(document.documentElement).getPropertyValue("--peek-scale")
+    ) || 0.9;
+    var REVEAL_PX = 130; /* drag distance for the scale/opacity swap to fully
+      complete — position itself still tracks the finger past this point */
+
+    function lerp(a, b, t) { return a + (b - a) * t; }
+    function clearInline(el) {
+      if (!el) return;
+      el.style.transition = ""; el.style.transform = "";
+      el.style.opacity = ""; el.style.filter = "";
     }
-    if (touchLocked) {
-      e.preventDefault(); /* claim the gesture fully —
-        no native scroll, no address-bar reveal, no page shift */
-      /* live-follow: the whole deck tracks the finger 1:1 while
-         dragging, instead of only reacting once the touch ends */
-      stageEl.style.transform = "translateX(" + dx + "px)";
+    function paint(el, dx, scale, opacity, blur) {
+      if (!el) return;
+      el.style.transform = "translate(calc(-50% + " + dx + "px), var(--ty)) scale(" + scale + ")";
+      el.style.opacity = opacity;
+      el.style.filter = "blur(" + blur + "px)";
     }
-  }, { passive: false });
-  stageEl.addEventListener("touchend", function (e) {
-    if (touchX === null) return;
-    var caseOpen = document.body.classList.contains("case-open");
-    var inPlay = document.body.dataset.mode === "play";
-    var dx = e.changedTouches[0].clientX - touchX;
-    var dy = e.changedTouches[0].clientY - touchY;
-    touchX = touchY = null;
-    /* settle the live drag — snap back to 0 either way; if the
-       swipe also clears the commit threshold, next()/prev() fires
-       in parallel so the class-based slide takes over smoothly */
-    stageEl.style.transition = "transform 320ms cubic-bezier(0.22, 1, 0.36, 1)";
-    stageEl.style.transform = "translateX(0px)";
-    stageCleanupTimer = setTimeout(function () {
-      stageEl.style.transition = ""; stageEl.style.transform = "";
-    }, 340);
-    if (caseOpen || inPlay || !touchLocked) { touchLocked = null; return; }
-    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-      if (dx < 0) next(); else prev();
-    }
-    touchLocked = null;
-  }, { passive: true });
+
+    stageEl.addEventListener("touchstart", function (e) {
+      touchX = e.changedTouches[0].clientX;
+      touchY = e.changedTouches[0].clientY;
+      touchLocked = null;
+      snap = {
+        focused: stageEl.querySelector(".unit.is-focused"),
+        peekLeft: stageEl.querySelector(".unit.is-peek-left"),
+        peekRight: stageEl.querySelector(".unit.is-peek-right")
+      };
+      [snap.focused, snap.peekLeft, snap.peekRight].forEach(function (el) {
+        if (el) el.style.transition = "none";
+      });
+    }, { passive: true });
+
+    stageEl.addEventListener("touchmove", function (e) {
+      if (touchX === null) return;
+      var dx = e.touches[0].clientX - touchX;
+      var dy = e.touches[0].clientY - touchY;
+      if (touchLocked === null && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
+        touchLocked = Math.abs(dx) > Math.abs(dy) * 1.5; /* decide once, early */
+      }
+      if (!touchLocked) return;
+      e.preventDefault(); /* claim the gesture fully — no native scroll,
+        no address-bar reveal, no page shift */
+      if (guardFn && guardFn()) return;
+
+      var t = Math.max(-1, Math.min(1, dx / REVEAL_PX));
+      var a = Math.abs(t);
+
+      /* the focused card shrinks/dims/blurs as it's dragged away, in
+         either direction — it's always the one leaving */
+      paint(snap.focused, dx, lerp(1, peekScaleVal, a), lerp(1, 0.71, a), lerp(0, 1, a));
+
+      /* whichever peek is in the drag's direction grows/brightens/
+         sharpens toward full size as it becomes the new focused card;
+         the other peek just tracks the finger without transforming */
+      if (t < 0 && snap.peekRight) {
+        var t2 = -t;
+        paint(snap.peekRight, dx, lerp(peekScaleVal, 1, t2), lerp(0.71, 1, t2), lerp(1, 0, t2));
+      } else if (snap.peekRight) {
+        paint(snap.peekRight, dx, peekScaleVal, 0.71, 1);
+      }
+      if (t > 0 && snap.peekLeft) {
+        var t3 = t;
+        paint(snap.peekLeft, dx, lerp(peekScaleVal, 1, t3), lerp(0.71, 1, t3), lerp(1, 0, t3));
+      } else if (snap.peekLeft) {
+        paint(snap.peekLeft, dx, peekScaleVal, 0.71, 1);
+      }
+    }, { passive: false });
+
+    stageEl.addEventListener("touchend", function (e) {
+      if (touchX === null) return;
+      var dx = e.changedTouches[0].clientX - touchX;
+      var dy = e.changedTouches[0].clientY - touchY;
+      var wasLocked = touchLocked;
+      var els = snap ? [snap.focused, snap.peekLeft, snap.peekRight] : [];
+      touchX = touchY = null; touchLocked = null;
+
+      if (!wasLocked || (guardFn && guardFn())) { els.forEach(clearInline); return; }
+
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        if (dx < 0) nextFn(); else prevFn();
+      }
+      /* re-enabling the transition and clearing the inline overrides in
+         the same tick lets the browser animate smoothly FROM wherever
+         the live drag left off TO the real class-based end state —
+         one continuous motion, not a jump followed by a separate one */
+      els.forEach(clearInline);
+    }, { passive: true });
+  };
+
+  window.initSwipeDrag(document.getElementById("stage"), next, prev, function () {
+    return document.body.classList.contains("case-open") || document.body.dataset.mode === "play";
+  });
 
   /* ------- Custom circular cursor (fine pointers only) ------- */
   var cursorEl = document.getElementById("cursor");
@@ -2377,44 +2431,8 @@ body[data-mode="play"] .doodle.play-only { display: block; }
   if (pPrev) pPrev.addEventListener("click", window.playPrev);
   if (pNext) pNext.addEventListener("click", window.playNext);
 
-  var pTouchX = null, pTouchY = null, pTouchLocked = null, pStageCleanupTimer = null;
-  if (pStage) {
-    pStage.addEventListener("touchstart", function (e) {
-      clearTimeout(pStageCleanupTimer);
-      pTouchX = e.changedTouches[0].clientX;
-      pTouchY = e.changedTouches[0].clientY;
-      pTouchLocked = null;
-      pStage.style.transition = "none";
-    }, { passive: true });
-    pStage.addEventListener("touchmove", function (e) {
-      if (pTouchX === null) return;
-      var dx = e.touches[0].clientX - pTouchX;
-      var dy = e.touches[0].clientY - pTouchY;
-      if (pTouchLocked === null && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
-        pTouchLocked = Math.abs(dx) > Math.abs(dy) * 1.5;
-      }
-      if (pTouchLocked) {
-        e.preventDefault();
-        pStage.style.transform = "translateX(" + dx + "px)";
-      }
-    }, { passive: false });
-    pStage.addEventListener("touchend", function (e) {
-      if (pTouchX === null) return;
-      var dx = e.changedTouches[0].clientX - pTouchX;
-      var dy = e.changedTouches[0].clientY - pTouchY;
-      var wasLocked = pTouchLocked;
-      pTouchX = pTouchY = null;
-      pStage.style.transition = "transform 320ms cubic-bezier(0.22, 1, 0.36, 1)";
-      pStage.style.transform = "translateX(0px)";
-      pStageCleanupTimer = setTimeout(function () {
-        pStage.style.transition = ""; pStage.style.transform = "";
-      }, 340);
-      if (!wasLocked) { pTouchLocked = null; return; }
-      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
-        if (dx < 0) window.playNext(); else window.playPrev();
-      }
-      pTouchLocked = null;
-    }, { passive: true });
+  if (pStage && window.initSwipeDrag) {
+    window.initSwipeDrag(pStage, window.playNext, window.playPrev, null);
   }
   render();
 })();
