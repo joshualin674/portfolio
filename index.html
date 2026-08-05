@@ -296,6 +296,8 @@ a { color: inherit; text-decoration: none; }
 .stage {
   position: absolute; inset: 0;
   z-index: 2;
+  touch-action: pan-y; /* claim horizontal gestures for the swipe JS —
+    otherwise iOS/Android can eat them as edge-navigation first */
 }
 .unit {
   position: absolute; top: 50%; left: 50%;
@@ -840,26 +842,32 @@ body.no-splash .page > * { opacity: 1; transition: none; }
   body { overflow-y: auto; }
 
   .identity {
+    position: fixed;
     top: 20px; left: 50%; transform: translateX(-50%);
     width: auto; gap: 12px;
+    z-index: 20;
   }
-  .sparkle-row { top: 59px; width: min(348px, 94vw); font-size: 24px; } /* desktop geometry x0.889 */
-  .toggle { top: 64px; width: 132px; height: 44px; font-size: 19px; }
+  .sparkle-row { position: fixed; top: 59px; width: min(348px, 94vw); font-size: 24px; z-index: 20; } /* desktop geometry x0.889 */
+  .toggle { position: fixed; top: 64px; width: 132px; height: 44px; font-size: 19px; z-index: 20; }
   .toggle-knob { top: 4px; left: 4px; width: 56px; height: 36px; }
   .toggle[aria-checked="true"] .toggle-knob { transform: translateX(68px); }
   .info-btn { width: 44px; height: 44px; }
   .dot::before { inset: -16px; } /* ~38px tap zones on 6px dots */
   .contact {
+    position: fixed;
     top: 122px; left: 50%; transform: translateX(-50%);
     gap: 20px; font-size: 19px; /* a notch under "Josh Lin" */
+    z-index: 20;
   }
   .contact a {
     display: inline-block;
     padding: 10px 6px; margin: -10px -6px; /* ~44px tap box, same visual */
   }
   .info-pop {
+    position: fixed;
     top: 156px; left: 50%; width: 92vw;
     transform: translateX(-50%) translateY(-4px);
+    z-index: 21;
   }
   .info-pop.is-open { transform: translateX(-50%) translateY(0); }
   .case-overlay {
@@ -880,14 +888,14 @@ body.no-splash .page > * { opacity: 1; transition: none; }
   .case-pad { padding-top: 76px; } /* content clears the close button */
   .case-next img { width: 96px; height: 64px; }
 
-  .unit { top: 230px; }
+  .unit { top: 220px; }
   .unit.is-peek-left  { left: 0; transform: translate(-91%, 0) scale(var(--peek-scale)); }
   .unit.is-peek-right { left: 100%; transform: translate(-9%, 0) scale(var(--peek-scale)); }
   .unit.is-hidden-left  { transform: translate(-140%, 0) scale(var(--peek-scale)); }
   .unit.is-hidden-right { transform: translate(40%, 0) scale(var(--peek-scale)); }
 
   .dots { top: auto; bottom: 64px; }
-  .footer { bottom: 14px; font-size: 18px; }
+  .footer { position: fixed; bottom: 14px; font-size: 18px; z-index: 20; }
   .nav-zone, .sr-nav { display: none; }
   .unit-shadow {
     top: calc(100% + 36px);
