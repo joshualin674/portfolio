@@ -829,8 +829,8 @@ body.no-splash .page > * { opacity: 1; transition: none; }
    ============================================================ */
 @media (max-width: 768px) {
   :root {
-    --card-w: min(75vw, 296px);
-    --card-h: calc(var(--card-w) / 0.82);  /* mobile is portrait-ish */
+    --card-w: min(84vw, 300px);
+    --card-h: calc(var(--card-w) / 1.4841); /* landscape — same ratio as desktop's 558:376 */
     --radius-card: 12px;
     --fs-27: 22px;
     --fs-24: 17px;
@@ -838,9 +838,9 @@ body.no-splash .page > * { opacity: 1; transition: none; }
     --gap-md: 12px;
     --gap-sm: 6px;
     --dot-size: 6px;
-    --ty: 0;
+    --ty: calc(-50% + 28px); /* centered between the fixed header (~155px) and footer/dots zone (~95px) */
   }
-  body { overflow-y: auto; overflow-x: hidden; }
+  body { overflow: hidden; }
 
   .identity {
     position: fixed;
@@ -889,15 +889,21 @@ body.no-splash .page > * { opacity: 1; transition: none; }
   .case-pad { padding-top: 76px; } /* content clears the close button */
   .case-next img { width: 96px; height: 64px; }
 
-  .unit { top: 220px; }
-  .unit.is-peek-left  { left: 0; transform: translate(-91%, 0) scale(var(--peek-scale)); }
-  .unit.is-peek-right { left: 100%; transform: translate(-9%, 0) scale(var(--peek-scale)); }
-  .unit.is-hidden-left  { transform: translate(-140%, 0) scale(var(--peek-scale)); }
-  .unit.is-hidden-right { transform: translate(40%, 0) scale(var(--peek-scale)); }
+  .unit { top: 50%; }
+  .unit.is-peek-left  { left: 0; transform: translate(-91%, var(--ty)) scale(var(--peek-scale)); }
+  .unit.is-peek-right { left: 100%; transform: translate(-9%, var(--ty)) scale(var(--peek-scale)); }
+  .unit.is-hidden-left  { transform: translate(-140%, var(--ty)) scale(var(--peek-scale)); }
+  .unit.is-hidden-right { transform: translate(40%, var(--ty)) scale(var(--peek-scale)); }
 
   .dots { top: auto; bottom: 64px; }
   .footer { position: fixed; bottom: 14px; font-size: 18px; z-index: 20; }
   .nav-zone, .sr-nav { display: none; }
+  .mode-flash {
+    -webkit-backdrop-filter: none; /* backdrop blur is expensive and the
+      likely cause of the slow/glitchy mode switch on mobile GPUs —
+      keep the light opacity flash, drop the costly blur */
+            backdrop-filter: none;
+  }
   .unit-shadow {
     top: calc(100% + 36px);
     left: -8px; right: -8px;
@@ -1917,12 +1923,14 @@ body[data-mode="play"] .doodle.play-only { display: block; }
     if (e.key === "ArrowLeft")  { if (inPlay) { if (window.playPrev) window.playPrev(); } else prev(); }
   });
 
-  var touchX = null, touchY = null, touchLocked = null;
+  var touchX = null, touchY = null, touchLocked = null, stageCleanupTimer = null;
   var stageEl = document.getElementById("stage");
   stageEl.addEventListener("touchstart", function (e) {
+    clearTimeout(stageCleanupTimer);
     touchX = e.changedTouches[0].clientX;
     touchY = e.changedTouches[0].clientY;
     touchLocked = null;
+    stageEl.style.transition = "none";
   }, { passive: true });
   stageEl.addEventListener("touchmove", function (e) {
     if (touchX === null) return;
@@ -1931,19 +1939,34 @@ body[data-mode="play"] .doodle.play-only { display: block; }
     if (touchLocked === null && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
       touchLocked = Math.abs(dx) > Math.abs(dy) * 1.5; /* decide once, early */
     }
-    if (touchLocked) e.preventDefault(); /* claim the gesture fully —
-      no native scroll, no address-bar reveal, no page shift */
+    if (touchLocked) {
+      e.preventDefault(); /* claim the gesture fully —
+        no native scroll, no address-bar reveal, no page shift */
+      /* live-follow: the whole deck tracks the finger 1:1 while
+         dragging, instead of only reacting once the touch ends */
+      stageEl.style.transform = "translateX(" + dx + "px)";
+    }
   }, { passive: false });
   stageEl.addEventListener("touchend", function (e) {
     if (touchX === null) return;
-    if (document.body.classList.contains("case-open")) { touchX = touchY = touchLocked = null; return; }
-    if (document.body.dataset.mode === "play") { touchX = touchY = touchLocked = null; return; }
+    var caseOpen = document.body.classList.contains("case-open");
+    var inPlay = document.body.dataset.mode === "play";
     var dx = e.changedTouches[0].clientX - touchX;
     var dy = e.changedTouches[0].clientY - touchY;
+    touchX = touchY = null;
+    /* settle the live drag — snap back to 0 either way; if the
+       swipe also clears the commit threshold, next()/prev() fires
+       in parallel so the class-based slide takes over smoothly */
+    stageEl.style.transition = "transform 320ms cubic-bezier(0.22, 1, 0.36, 1)";
+    stageEl.style.transform = "translateX(0px)";
+    stageCleanupTimer = setTimeout(function () {
+      stageEl.style.transition = ""; stageEl.style.transform = "";
+    }, 340);
+    if (caseOpen || inPlay || !touchLocked) { touchLocked = null; return; }
     if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
       if (dx < 0) next(); else prev();
     }
-    touchX = touchY = touchLocked = null;
+    touchLocked = null;
   }, { passive: true });
 
   /* ------- Custom circular cursor (fine pointers only) ------- */
@@ -2354,12 +2377,14 @@ body[data-mode="play"] .doodle.play-only { display: block; }
   if (pPrev) pPrev.addEventListener("click", window.playPrev);
   if (pNext) pNext.addEventListener("click", window.playNext);
 
-  var pTouchX = null, pTouchY = null, pTouchLocked = null;
+  var pTouchX = null, pTouchY = null, pTouchLocked = null, pStageCleanupTimer = null;
   if (pStage) {
     pStage.addEventListener("touchstart", function (e) {
+      clearTimeout(pStageCleanupTimer);
       pTouchX = e.changedTouches[0].clientX;
       pTouchY = e.changedTouches[0].clientY;
       pTouchLocked = null;
+      pStage.style.transition = "none";
     }, { passive: true });
     pStage.addEventListener("touchmove", function (e) {
       if (pTouchX === null) return;
@@ -2368,16 +2393,27 @@ body[data-mode="play"] .doodle.play-only { display: block; }
       if (pTouchLocked === null && (Math.abs(dx) > 8 || Math.abs(dy) > 8)) {
         pTouchLocked = Math.abs(dx) > Math.abs(dy) * 1.5;
       }
-      if (pTouchLocked) e.preventDefault();
+      if (pTouchLocked) {
+        e.preventDefault();
+        pStage.style.transform = "translateX(" + dx + "px)";
+      }
     }, { passive: false });
     pStage.addEventListener("touchend", function (e) {
       if (pTouchX === null) return;
       var dx = e.changedTouches[0].clientX - pTouchX;
       var dy = e.changedTouches[0].clientY - pTouchY;
+      var wasLocked = pTouchLocked;
+      pTouchX = pTouchY = null;
+      pStage.style.transition = "transform 320ms cubic-bezier(0.22, 1, 0.36, 1)";
+      pStage.style.transform = "translateX(0px)";
+      pStageCleanupTimer = setTimeout(function () {
+        pStage.style.transition = ""; pStage.style.transform = "";
+      }, 340);
+      if (!wasLocked) { pTouchLocked = null; return; }
       if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
         if (dx < 0) window.playNext(); else window.playPrev();
       }
-      pTouchX = pTouchY = pTouchLocked = null;
+      pTouchLocked = null;
     }, { passive: true });
   }
   render();
