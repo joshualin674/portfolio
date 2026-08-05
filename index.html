@@ -308,30 +308,37 @@ a { color: inherit; text-decoration: none; }
   transform-origin: center center;
   transition: transform var(--transition-card), opacity var(--transition-card),
               left var(--transition-card), filter var(--transition-card);
-  will-change: transform, opacity, filter;
+  will-change: transform, scale, opacity, filter;
 }
 .unit.is-focused {
   transform: translate(-50%, var(--ty));
+  scale: 1;
   opacity: 1; z-index: 3;
+}
+.unit.is-peek-left, .unit.is-peek-right,
+.unit.is-hidden-left, .unit.is-hidden-right {
+  scale: var(--peek-scale); /* standalone now — see the transform
+    rules above; keeps JS free to animate this independently
+    without compounding against an embedded scale() */
 }
 .unit.is-peek-left {
   left: 0;
-  transform: translate(-50%, var(--ty)) scale(var(--peek-scale));
+  transform: translate(-50%, var(--ty));
   opacity: 0.71; filter: blur(1px); z-index: 2;
 }
 .unit.is-peek-right {
   left: 100%;
-  transform: translate(-50%, var(--ty)) scale(var(--peek-scale));
+  transform: translate(-50%, var(--ty));
   opacity: 0.71; filter: blur(1px); z-index: 2;
 }
 .unit.is-hidden-left {
   left: 0;
-  transform: translate(-160%, var(--ty)) scale(var(--peek-scale));
+  transform: translate(-160%, var(--ty));
   opacity: 0; z-index: 1; pointer-events: none;
 }
 .unit.is-hidden-right {
   left: 100%;
-  transform: translate(60%, var(--ty)) scale(var(--peek-scale));
+  transform: translate(60%, var(--ty));
   opacity: 0; z-index: 1; pointer-events: none;
 }
 
@@ -890,10 +897,10 @@ body.no-splash .page > * { opacity: 1; transition: none; }
   .case-next img { width: 96px; height: 64px; }
 
   .unit { top: 50%; }
-  .unit.is-peek-left  { left: 0; transform: translate(-91%, var(--ty)) scale(var(--peek-scale)); }
-  .unit.is-peek-right { left: 100%; transform: translate(-9%, var(--ty)) scale(var(--peek-scale)); }
-  .unit.is-hidden-left  { transform: translate(-140%, var(--ty)) scale(var(--peek-scale)); }
-  .unit.is-hidden-right { transform: translate(40%, var(--ty)) scale(var(--peek-scale)); }
+  .unit.is-peek-left  { left: 0; transform: translate(-91%, var(--ty)); }
+  .unit.is-peek-right { left: 100%; transform: translate(-9%, var(--ty)); }
+  .unit.is-hidden-left  { transform: translate(-140%, var(--ty)); }
+  .unit.is-hidden-right { transform: translate(40%, var(--ty)); }
 
   .dots { top: auto; bottom: 64px; }
   .footer { position: fixed; bottom: 14px; font-size: 18px; z-index: 20; }
@@ -1928,24 +1935,32 @@ body[data-mode="play"] .doodle.play-only { display: block; }
      not just position — so nothing "snaps" into place at the end.
      Reused by both carousels (play calls window.initSwipeDrag below). ------- */
   window.initSwipeDrag = function (stageEl, nextFn, prevFn, guardFn) {
+    /* Filmstrip model: ONE shared position shift moves every visible
+       (and about-to-be-visible) card together, so their spacing never
+       changes and they can never overlap — only the group's offset
+       changes. Layered on top, each role's own scale/opacity/blur
+       (the standalone `scale` CSS property, not transform, so it can
+       never compound against a scale already baked into transform)
+       interpolates independently, including the hidden card waiting
+       just off both edges — so it fades in as part of the drag itself
+       instead of popping in only after release. */
     var touchX = null, touchY = null, touchLocked = null, snap = null, shift = 0;
     var peekScaleVal = parseFloat(
       getComputedStyle(document.documentElement).getPropertyValue("--peek-scale")
     ) || 0.9;
-    var REVEAL_PX = 130; /* drag distance for the scale/opacity swap to fully
-      complete — position itself still tracks the finger past this point */
+    var REVEAL_PX = 130; /* drag distance for a full role-swap to complete */
 
     function lerp(a, b, t) { return a + (b - a) * t; }
-    function clearInline(el) {
+    function paint(el, scale, opacity, blur) {
       if (!el) return;
-      el.style.transition = ""; el.style.transform = "";
-      el.style.opacity = ""; el.style.filter = "";
-    }
-    function paint(el, dx, scale, opacity, blur) {
-      if (!el) return;
-      el.style.transform = "translate(calc(-50% + " + dx + "px), var(--ty)) scale(" + scale + ")";
+      el.style.scale = scale;
       el.style.opacity = opacity;
       el.style.filter = "blur(" + blur + "px)";
+    }
+    function clearInline(el) {
+      if (!el) return;
+      el.style.transition = ""; el.style.scale = "";
+      el.style.opacity = ""; el.style.filter = "";
     }
 
     stageEl.addEventListener("touchstart", function (e) {
@@ -1955,16 +1970,15 @@ body[data-mode="play"] .doodle.play-only { display: block; }
       snap = {
         focused: stageEl.querySelector(".unit.is-focused"),
         peekLeft: stageEl.querySelector(".unit.is-peek-left"),
-        peekRight: stageEl.querySelector(".unit.is-peek-right")
+        peekRight: stageEl.querySelector(".unit.is-peek-right"),
+        hiddenLeft: stageEl.querySelector(".unit.is-hidden-left"),
+        hiddenRight: stageEl.querySelector(".unit.is-hidden-right")
       };
-      shift = stageEl.getBoundingClientRect().width / 2; /* actual distance
-        from the center slot to a peek slot — the card has to travel this
-        far to reach its new position, not just however far the finger
-        moved, or it ends up fully "grown" while still nowhere near
-        its target, which is what was overlapping */
-      [snap.focused, snap.peekLeft, snap.peekRight].forEach(function (el) {
-        if (el) el.style.transition = "none";
-      });
+      shift = stageEl.getBoundingClientRect().width / 2; /* real distance
+        between adjacent slots, measured — not guessed from drag length */
+      stageEl.style.transition = "none";
+      [snap.focused, snap.peekLeft, snap.peekRight, snap.hiddenLeft, snap.hiddenRight]
+        .forEach(function (el) { if (el) el.style.transition = "none"; });
     }, { passive: true });
 
     stageEl.addEventListener("touchmove", function (e) {
@@ -1981,26 +1995,35 @@ body[data-mode="play"] .doodle.play-only { display: block; }
 
       var t = Math.max(-1, Math.min(1, dx / REVEAL_PX));
       var a = Math.abs(t);
-      var sharedX = t * shift; /* the card's real, full travel distance at
-        this point in the gesture — reaches exactly the neighboring slot's
-        position at |t|=1, matching where the class-based state will land */
 
-      /* the focused card shrinks/dims/blurs AND moves toward the slot
-         it's exiting to, in lockstep — it's always the one leaving */
-      paint(snap.focused, sharedX, lerp(1, peekScaleVal, a), lerp(1, 0.71, a), lerp(0, 1, a));
+      /* the ONE shared shift — every card's relative spacing is fixed
+         by their existing CSS anchors, so moving them all by the same
+         amount keeps them correctly side by side at every point */
+      stageEl.style.transform = "translateX(" + (t * shift) + "px)";
 
-      /* whichever peek is in the drag's direction grows/brightens/
-         sharpens AND moves toward center, in the same lockstep. the
-         other peek is left alone entirely — it already transitions
-         correctly (peek -> hidden) via its normal CSS transition the
-         instant the class change lands, no need to hand-animate it */
-      if (t < 0 && snap.peekRight) {
-        var t2 = -t;
-        paint(snap.peekRight, sharedX, lerp(peekScaleVal, 1, t2), lerp(0.71, 1, t2), lerp(1, 0, t2));
-      }
-      if (t > 0 && snap.peekLeft) {
-        var t3 = t;
-        paint(snap.peekLeft, sharedX, lerp(peekScaleVal, 1, t3), lerp(0.71, 1, t3), lerp(1, 0, t3));
+      /* the focused card shrinks/dims/blurs as it's dragged out,
+         in either direction — it's always the one leaving */
+      paint(snap.focused, lerp(1, peekScaleVal, a), lerp(1, 0.71, a), lerp(0, 1, a));
+
+      if (t < 0) {
+        /* revealing next: peek-right grows into the new focused card;
+           peek-left fades out toward hidden; hidden-right (already
+           riding along with the shared shift, same size as any peek)
+           fades in to take peek-right's old spot — nothing pops in */
+        if (snap.peekRight) {
+          var t2 = -t;
+          paint(snap.peekRight, lerp(peekScaleVal, 1, t2), lerp(0.71, 1, t2), lerp(1, 0, t2));
+        }
+        if (snap.peekLeft) paint(snap.peekLeft, peekScaleVal, lerp(0.71, 0, -t), 1);
+        if (snap.hiddenRight) paint(snap.hiddenRight, peekScaleVal, lerp(0, 0.71, -t), 1);
+      } else if (t > 0) {
+        /* symmetric for revealing previous */
+        if (snap.peekLeft) {
+          var t3 = t;
+          paint(snap.peekLeft, lerp(peekScaleVal, 1, t3), lerp(0.71, 1, t3), lerp(1, 0, t3));
+        }
+        if (snap.peekRight) paint(snap.peekRight, peekScaleVal, lerp(0.71, 0, t), 1);
+        if (snap.hiddenLeft) paint(snap.hiddenLeft, peekScaleVal, lerp(0, 0.71, t), 1);
       }
     }, { passive: false });
 
@@ -2009,18 +2032,25 @@ body[data-mode="play"] .doodle.play-only { display: block; }
       var dx = e.changedTouches[0].clientX - touchX;
       var dy = e.changedTouches[0].clientY - touchY;
       var wasLocked = touchLocked;
-      var els = snap ? [snap.focused, snap.peekLeft, snap.peekRight] : [];
+      var els = snap
+        ? [snap.focused, snap.peekLeft, snap.peekRight, snap.hiddenLeft, snap.hiddenRight]
+        : [];
       touchX = touchY = null; touchLocked = null;
 
-      if (!wasLocked || (guardFn && guardFn())) { els.forEach(clearInline); return; }
+      /* the shared shift always resets — the class-based state (about
+         to be applied, or already correct if canceling) already encodes
+         the right position for every unit via its own CSS anchor */
+      stageEl.style.transition = "transform 320ms cubic-bezier(0.22, 1, 0.36, 1)";
+      stageEl.style.transform = "translateX(0px)";
+      setTimeout(function () { stageEl.style.transition = ""; stageEl.style.transform = ""; }, 340);
 
+      if (!wasLocked || (guardFn && guardFn())) { els.forEach(clearInline); return; }
       if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
         if (dx < 0) nextFn(); else prevFn();
       }
-      /* re-enabling the transition and clearing the inline overrides in
-         the same tick lets the browser animate smoothly FROM wherever
-         the live drag left off TO the real class-based end state —
-         one continuous motion, not a jump followed by a separate one */
+      /* re-enabling each unit's transition and clearing its inline
+         overrides in the same tick animates smoothly FROM wherever the
+         live drag left off TO the real class-based end state */
       els.forEach(clearInline);
     }, { passive: true });
   };
