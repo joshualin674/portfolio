@@ -1,0 +1,2359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Josh Lin — Product Designer for Information Systems</title>
+<meta name="description" content="Josh Lin — product designer for information systems. Reducing friction in nonprofit workflows and making university websites clearer. Computational Media @ Georgia Tech." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet" />
+<style>
+/* ============================================================
+   TOKENS — v2, extracted from Figma page 3 (frame "first",
+   1512 × 982). Line weights and colors are Figma-exact and
+   deliberately varied per element — do not unify them.
+   ============================================================ */
+:root {
+  --s: 1; /* pure number, computed in JS: min(vw/1512, vh/982, 1.15) */
+
+  --bg: #141414;
+
+  /* New graded ink system */
+  --ink-90: rgba(255, 255, 255, 0.9);
+  --ink-85: rgba(255, 255, 255, 0.85);
+  --ink-70: rgba(255, 255, 255, 0.7);
+  --ink-50: rgba(255, 255, 255, 0.5);
+  --ink-43: rgba(255, 255, 255, 0.43);   /* logotype only (see note) */
+  --tilde: #898989;
+  --link: #b8b8b8;
+  --footer-ink: #737373;                 /* Figma value; decorative credit */
+  --sparkle-a: rgba(184, 184, 184, 0.08);/* identity sparkle trail */
+  --sparkle-b: rgba(137, 137, 137, 0.12);/* blurred divider row */
+
+  /* Borders — intentionally different weights per element */
+  --toggle-track-bg: #121212;
+  --toggle-track-border: #303030;        /* 0.5px */
+  --knob-border: #424242;                /* 0.5px */
+  --pill-border: #424242;                /* 0.3px */
+  --card-border: #383838;                /* 1px   */
+  --peek-pill-border: #646464;
+
+  /* Fills */
+  --knob-grad: linear-gradient(to bottom, #333333, #2a2a2a);
+  --pill-grad: linear-gradient(to bottom, rgba(51,51,51,0.3), rgba(42,42,42,0.3));
+  --peek-pill-fill: rgba(94, 94, 94, 0.3);
+
+  /* Glows */
+  --white-glow: 0 0 5.5px rgba(255, 255, 255, 0.25);
+  --white-glow-pulse: 0 0 14px rgba(255, 255, 255, 0.45);
+  --knob-glow: 0 0 4.481px rgba(255, 255, 255, 0.25);
+
+  --font-stack: "Arial Narrow", "Archivo Narrow", sans-serif;
+
+  /* Type — Figma-exact */
+  --fs-27: calc(27px * var(--s));   /* logotype, toggle labels, project name */
+  --fs-24: calc(24px * var(--s));   /* links, pills, descriptions, footer */
+
+  /* Geometry — Figma-exact */
+  --card-w: calc(558px * var(--s));
+  --card-h: calc(376px * var(--s));      /* landscape */
+  --radius-card: calc(15px * var(--s));
+  --radius-pill: 60px;
+  --toggle-w: calc(165px * var(--s));
+  --toggle-h: calc(49.5px * var(--s));
+  --peek-scale: 0.9;
+  --gap-lg: calc(32px * var(--s));
+  --gap-md: calc(16px * var(--s));
+  --gap-sm: calc(8px * var(--s));
+  --dot-size: calc(9.5px * var(--s));
+  --unit-half: calc(250.24px * var(--s)); /* half of unit height 500.47 */
+  --ty: -50%;                             /* units vertically centered (desktop) */
+
+  --transition-card: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-ui: 180ms ease-out;
+  --case-next-bg: #191919;
+
+  /* Mode-portable UI tokens (dark/work defaults; play mode overrides below) */
+  --dot-inactive: #646464;
+  --panel-bg: #1c1c1c;
+  --panel-bg-rgb: 22, 22, 22;   /* same color, as r,g,b for rgba() compositing */
+  --polaroid-bg: #818181;
+  --polaroid-border: rgba(255, 255, 255, 0.38);
+  --cursor-ring-border: rgba(255, 255, 255, 0.75);
+  --cursor-ring-fill: rgba(255, 255, 255, 0.08);
+  --fly-fill: #ffffff;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; }
+
+body {
+  background: var(--bg);
+  color: var(--ink-85);
+  font-family: var(--font-stack);
+  overflow: hidden;
+}
+body.custom-cursor, body.custom-cursor * { cursor: none; }
+
+a { color: inherit; text-decoration: none; }
+
+:focus-visible {
+  outline: 2px solid var(--ink-70);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+.lf-bi { font-weight: 700; font-style: italic; }
+.lf-b  { font-weight: 700; }
+.tilde { color: var(--tilde); }
+
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
+
+/* ============================================================
+   BACKGROUND — brick-perspective floor (bottom third only):
+   blurred horizontal lines spanning the full width, compressing
+   as they recede upward, with vertical joints alternating per
+   row (brick pattern). Rotated 1.39° like the frame.
+   ============================================================ */
+.floor {
+  position: fixed; left: -6%; right: -6%; bottom: -4vh;
+  height: 37vh; /* ≈ bottom third of the screen once masked */
+  transform: rotate(1.39deg);
+  pointer-events: none; z-index: 0;
+  overflow: hidden;
+}
+.floor-glow {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(55% 60% at 30% 80%, rgba(255,255,255,0.05), transparent 70%),
+    radial-gradient(45% 55% at 74% 72%, rgba(255,255,255,0.04), transparent 70%);
+  filter: blur(18px);
+}
+.floor-plane {
+  position: absolute; left: -12%; right: -12%; bottom: -10%;
+  height: 165%;
+  transform: perspective(620px) rotateX(54deg);
+  transform-origin: bottom center; /* rows compress toward the top */
+  filter: blur(2px);
+  -webkit-mask-image: linear-gradient(to top, #000 42%, transparent 96%);
+          mask-image: linear-gradient(to top, #000 42%, transparent 96%);
+}
+.floor-plane svg { width: 100%; height: 100%; display: block; }
+
+/* Per-unit floor shadow — lives inside each unit so it slides,
+   scales, and fades with its card automatically. */
+.unit-shadow {
+  position: absolute;
+  top: calc(100% + 200px * var(--s)); /* lands lower on the floor band */
+  left: calc(-16px * var(--s)); right: calc(-16px * var(--s));
+  height: calc(34px * var(--s));
+  background: #000;
+  border-radius: 50px;
+  filter: blur(34px);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+/* ============================================================
+   HEADER — center-stacked: logotype+info · sparkle divider ·
+   toggle · contact row  (Figma-exact vertical positions)
+   ============================================================ */
+.page { position: relative; z-index: 1; height: 100%; }
+
+.identity {
+  position: absolute; top: calc(20px * var(--s)); left: 50%;
+  transform: translateX(-50%);
+  width: calc(336px * var(--s));
+  display: flex; align-items: center; justify-content: space-between;
+  z-index: 6;
+}
+/* Note: the 43%-white logotype is below the site's 4.5:1 text floor.
+   It functions as a logotype/brand mark (WCAG contrast exemption);
+   all informational text on the page stays ≥ the floor. */
+.identity h1 {
+  font-size: var(--fs-27); font-weight: 400; color: var(--ink-43);
+  white-space: nowrap;
+}
+.identity h1 .sparkle-trail {
+  font-weight: 700; color: var(--sparkle-a);
+}
+.info-btn {
+  width: calc(39.96px * var(--s)); height: calc(39.96px * var(--s));
+  border-radius: 50%;
+  background: var(--knob-grad);
+  border: 0.5px solid var(--knob-border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink-70);
+  font-family: inherit;
+  transition: color var(--transition-ui);
+}
+.info-btn:hover { color: var(--ink-90); }
+.info-btn svg { width: calc(24px * var(--s)); height: calc(24px * var(--s)); }
+
+.info-pop {
+  position: absolute; top: calc(66px * var(--s)); left: 50%;
+  transform: translateX(-50%) translateY(-4px);
+  width: min(calc(440px * var(--s)), 92vw);
+  background: var(--panel-bg);
+  border: 0.5px solid var(--card-border);
+  border-radius: calc(12px * var(--s));
+  padding: calc(18px * var(--s)) calc(20px * var(--s));
+  text-align: center;
+  opacity: 0; pointer-events: none;
+  transition: opacity var(--transition-ui), transform var(--transition-ui);
+  z-index: 20;
+}
+.info-pop.is-open { opacity: 1; pointer-events: auto; transform: translateX(-50%) translateY(0); }
+.info-title {
+  font-size: var(--fs-27); /* matches the project title size */
+  color: var(--ink-85);
+  margin-bottom: calc(12px * var(--s));
+}
+/* Tilted polaroid, per Figma page 4: gray frame, dashed borders, white glow */
+.polaroid {
+  width: calc(200px * var(--s));
+  margin: 0 auto calc(14px * var(--s));
+  padding: calc(16px * var(--s));
+  background: var(--polaroid-bg);
+  border: 2px dashed var(--polaroid-border);
+  box-shadow: 0 4px 16.7px rgba(255, 255, 255, 0.25);
+  transform: rotate(1.78deg);
+}
+.polaroid img {
+  display: block; width: 100%;
+  aspect-ratio: 1; object-fit: cover;
+  border: 2px dashed rgba(255, 255, 255, 0.3);
+  box-shadow: inset 0 4px 4px rgba(0, 0, 0, 0.25);
+}
+.info-text {
+  font-size: var(--fs-24); line-height: 1.35;
+  color: var(--ink-70);
+}
+
+/* Blurred sparkle divider behind the toggle area */
+.sparkle-row {
+  position: absolute; top: calc(66px * var(--s)); left: 50%;
+  transform: translateX(-50%);
+  width: calc(392px * var(--s));
+  font-weight: 700; font-size: var(--fs-27);
+  color: var(--sparkle-b);
+  filter: blur(2px);
+  text-align: center; line-height: 1.25;
+  pointer-events: none; user-select: none;
+  word-break: break-word;
+  z-index: 1;
+}
+
+/* Toggle — new skin: #121212 track, 0.5px borders, gradient knob */
+.toggle {
+  position: absolute; top: calc(72px * var(--s)); left: 0; right: 0;
+  margin: 0 auto;
+  width: var(--toggle-w); height: var(--toggle-h);
+  background: var(--toggle-track-bg);
+  border: 0.5px solid var(--toggle-track-border);
+  border-radius: 45px;
+  display: flex; align-items: center;
+  font-size: calc(26.88px * var(--s)); color: var(--ink-70);
+  font-family: inherit;
+  z-index: 5;
+}
+.toggle-label { flex: 1; text-align: center; position: relative; z-index: 1; }
+.toggle-knob {
+  position: absolute; top: calc(4px * var(--s)); left: calc(5.5px * var(--s));
+  width: calc(69.4px * var(--s)); height: calc(40px * var(--s));
+  background: var(--knob-grad);
+  border: 0.5px solid var(--knob-border);
+  border-radius: 60px;
+  box-shadow: var(--knob-glow);
+  transition: transform var(--transition-card);
+}
+.toggle[aria-checked="true"] .toggle-knob {
+  transform: translateX(calc(85px * var(--s)));
+}
+.toggle .lab-work { color: var(--ink-90); }
+
+/* Contact row — 24px, gap 32, Resume ⇗(bold) / underlined LinkedIn, Email */
+.contact {
+  position: absolute; top: calc(136px * var(--s)); left: 50%;
+  transform: translateX(-50%);
+  display: flex; gap: var(--gap-lg);
+  font-size: var(--fs-24); color: var(--link);
+  white-space: nowrap;
+  z-index: 5;
+}
+.contact a { transition: color var(--transition-ui); }
+.contact a:hover { color: var(--ink-90); }
+.contact .u { text-decoration: underline; text-underline-position: from-font; }
+
+/* ============================================================
+   THE STAGE — units vertically centered; landscape cards;
+   pills + squiggles sit flush on the card's top edge.
+   ============================================================ */
+.stage {
+  position: absolute; inset: 0;
+  z-index: 2;
+}
+.unit {
+  position: absolute; top: 50%; left: 50%;
+  width: var(--card-w);
+  display: flex; flex-direction: column;
+  align-items: center; gap: 0; /* tags + connectors sit flush on the card */
+  transform-origin: center center;
+  transition: transform var(--transition-card), opacity var(--transition-card),
+              left var(--transition-card), filter var(--transition-card);
+  will-change: transform, opacity, filter;
+}
+.unit.is-focused {
+  transform: translate(-50%, var(--ty));
+  opacity: 1; z-index: 3;
+}
+.unit.is-peek-left {
+  left: 0;
+  transform: translate(-50%, var(--ty)) scale(var(--peek-scale));
+  opacity: 0.71; filter: blur(1px); z-index: 2;
+}
+.unit.is-peek-right {
+  left: 100%;
+  transform: translate(-50%, var(--ty)) scale(var(--peek-scale));
+  opacity: 0.71; filter: blur(1px); z-index: 2;
+}
+.unit.is-hidden-left {
+  left: 0;
+  transform: translate(-160%, var(--ty)) scale(var(--peek-scale));
+  opacity: 0; z-index: 1; pointer-events: none;
+}
+.unit.is-hidden-right {
+  left: 100%;
+  transform: translate(60%, var(--ty)) scale(var(--peek-scale));
+  opacity: 0; z-index: 1; pointer-events: none;
+}
+
+/* Floating tags, tethered to the card by dashed connectors.
+   The pill bobs; its line stretches in tandem (matched keyframes:
+   a 3px rise = scaleY(1.19) on a 16px line, origin bottom). */
+.unit-top { display: flex; gap: var(--gap-sm); align-items: flex-end; }
+.tag { display: flex; flex-direction: column; align-items: center; }
+.pill {
+  background: var(--pill-grad);
+  border: 0.3px solid var(--pill-border);
+  border-radius: var(--radius-pill);
+  padding: calc(3px * var(--s)) calc(7.5px * var(--s));
+  font-size: var(--fs-24);
+  color: var(--ink-70);
+  white-space: nowrap;
+}
+.connector {
+  width: calc(19px * var(--s)); height: calc(16px * var(--s));
+  color: var(--ink-50);
+  transform-origin: bottom center;
+}
+.tag:nth-child(2) .pill,
+.tag:nth-child(2) .connector { animation-delay: -1.6s; }
+@keyframes tagFloat {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(calc(-3px * var(--s))); }
+}
+@keyframes tagLine {
+  0%, 100% { transform: scaleY(1); }
+  50%      { transform: scaleY(1.19); }
+}
+.unit.is-focused .pill { animation: tagFloat 3.2s ease-in-out infinite; }
+.unit.is-focused .connector { animation: tagLine 3.2s ease-in-out infinite; }
+
+/* Card — landscape 558×376, 15px radius, 1px #383838 border,
+   white glow. The FOCUSED card pulses. */
+.card {
+  position: relative; display: block;
+  width: 100%; height: var(--card-h);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-card);
+  overflow: visible;
+  box-shadow: var(--white-glow);
+}
+/* Peek cards get an invisible, expanded hit area matching the same
+   padding the cursor label already uses (see positionZones' `pad`),
+   so the label, the hover, and the actual click target always agree. */
+.unit.is-peek-left .card::after,
+.unit.is-peek-right .card::after {
+  content: "";
+  position: absolute;
+  inset: calc(-70px * var(--s));
+  z-index: 1;
+}
+.card-clip {
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  overflow: hidden;
+}
+.card-glow {
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  box-shadow: var(--white-glow-pulse);
+  opacity: 0; pointer-events: none;
+}
+.unit.is-focused .card-glow {
+  animation: cardPulse 2.8s ease-in-out infinite;
+  will-change: opacity;
+}
+@keyframes cardPulse { 0%, 100% { opacity: 0; } 50% { opacity: 0.8; } }
+/* Diagonal shine layer (sweeps once on hover) */
+.card-clip::before {
+  content: "";
+  position: absolute; inset: 0; z-index: 2;
+  background: linear-gradient(115deg,
+    transparent 35%, rgba(255,255,255,var(--shine-strength, 0.26)) 50%, transparent 65%);
+  transform: translateX(-130%);
+  pointer-events: none;
+}
+/* Hovering the focused unit grows the card AND its surrounding
+   elements (tags, connectors, name travel with it) + fires the shine */
+@media (hover: hover) and (pointer: fine) {
+  .unit.is-focused:hover {
+    transform: translate(-50%, var(--ty)) scale(1.03);
+  }
+  .unit.is-focused:hover .card-clip::before {
+    animation: shine 750ms ease;
+  }
+}
+@keyframes shine { to { transform: translateX(130%); } }
+/* Figma overlay: subtle horizontal vignette on the artwork */
+.card-clip::after {
+  content: "";
+  position: absolute; inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(to left,
+    rgba(0,0,0,0.2), rgba(85,85,85,0) 48.5%, rgba(0,0,0,0.2) 99%);
+  pointer-events: none;
+}
+.thumb-img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover; display: block;
+}
+
+/* Name block — ~ tildes ~ in #898989, mixed-weight name letters */
+.unit-name { text-align: center; display: flex; flex-direction: column; gap: var(--gap-sm); margin-top: var(--gap-md); }
+.unit-name h2 { font-size: var(--fs-27); font-weight: 400; color: var(--ink-85); }
+.unit-name p { font-size: var(--fs-24); color: var(--ink-50); }
+
+/* Dots — 32px below the unit */
+.dots {
+  position: absolute; left: 50%;
+  top: calc(50% + var(--unit-half) + var(--gap-lg));
+  transform: translateX(-50%);
+  display: flex; gap: var(--gap-sm);
+  z-index: 6;
+}
+.dot {
+  position: relative;
+  width: var(--dot-size); height: var(--dot-size);
+  border-radius: 50%;
+  background: var(--dot-inactive);
+  border: none; padding: 0;
+  transition: background var(--transition-ui), transform var(--transition-ui);
+}
+.dot::before { content: ""; position: absolute; inset: -8px; }
+.dot.is-active { background: var(--ink-90); transform: scale(1.15); }
+
+/* ============================================================
+   CUSTOM CURSOR + PEEK NAVIGATION
+   The circular cursor follows the pointer; it morphs into a
+   "next project" / "previous project" pill when the pointer is
+   in the area around that project (peek + padding). Zones are
+   JS-positioned rectangles hugging each peek unit.
+   ============================================================ */
+.nav-zone {
+  position: fixed; z-index: 4;
+  background: transparent; border: none; padding: 0;
+  display: none;
+  pointer-events: none; /* purely a positional proxy for the cursor
+                            label now — hover/click pass through to
+                            the real card underneath */
+}
+.nav-zone.is-on { display: block; }
+
+.cursor {
+  position: fixed; left: 0; top: 0;
+  z-index: 190; /* above the case overlay, below the splash */
+  pointer-events: none;
+  will-change: transform;
+  display: none;
+}
+body.custom-cursor .cursor { display: block; }
+.cursor-dot {
+  position: absolute; left: 0; top: 0;
+  width: 18px; height: 18px;
+  border-radius: 60px;
+  border: 1px solid var(--cursor-ring-border);
+  background: var(--cursor-ring-fill);
+  transform: translate(-50%, -50%);
+  transition: transform 220ms ease, opacity 220ms ease,
+              background 180ms ease;
+}
+.cursor-pill {
+  position: absolute; left: 0; top: 0;
+  height: calc(44px * var(--s));
+  padding: 0 calc(18px * var(--s));
+  display: flex; align-items: center;
+  border-radius: 60px;
+  background: var(--knob-grad);
+  border: 0.5px solid var(--knob-border);
+  box-shadow: var(--knob-glow);
+  font-size: var(--fs-27); /* matches the project titles */
+  color: var(--ink-90);
+  white-space: nowrap;
+  transform: translate(-50%, -50%) scale(0.4);
+  opacity: 0;
+  transition: transform 220ms ease, opacity 220ms ease;
+  will-change: transform, opacity;
+}
+/* Circle and pill crossfade into each other — transform/opacity only */
+.cursor.is-label .cursor-dot {
+  transform: translate(-50%, -50%) scale(0.35);
+  opacity: 0;
+}
+.cursor.is-label .cursor-pill {
+  transform: translate(-50%, -50%) scale(1);
+  opacity: 1;
+}
+.cursor.is-hover .cursor-dot {
+  transform: translate(-50%, -50%) scale(1.6);
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* Keyboard fallbacks for the (visual-only) nav zones */
+.sr-nav {
+  position: absolute; width: 1px; height: 1px;
+  overflow: hidden; clip: rect(0 0 0 0);
+  top: 50%; z-index: 30;
+  font-family: inherit; font-size: 17px; color: var(--ink-90);
+  background: var(--knob-grad);
+  border: 0.5px solid var(--knob-border);
+  border-radius: 60px;
+}
+.sr-nav:focus-visible {
+  width: auto; height: auto; clip: auto;
+  padding: 8px 16px;
+  transform: translateY(-50%);
+}
+.sr-nav-prev { left: 24px; }
+.sr-nav-next { right: 24px; }
+
+/* ============================================================
+   FOOTER — credit line + star doodles
+   ============================================================ */
+.footer {
+  position: absolute; bottom: calc(32px * var(--s)); left: 50%;
+  transform: translateX(-50%);
+  font-size: var(--fs-24);
+  color: var(--footer-ink); opacity: 0.8;
+  white-space: nowrap;
+  z-index: 5;
+}
+.doodle {
+  position: absolute; z-index: 5;
+  width: calc(30px * var(--s)); height: calc(30px * var(--s));
+  pointer-events: none;
+}
+.doodle svg { width: 100%; height: 100%; overflow: visible; }
+.doodle .wing {
+  transform-box: view-box;
+  transform-origin: 17px 26px; /* wings pivot at the body */
+}
+.doodle .wing-a { animation: flapA 1.1s ease-in-out infinite; }
+.doodle .wing-b { animation: flapB 1.1s ease-in-out infinite; }
+@keyframes flapA {
+  0%, 100% { transform: rotate(-10deg); }
+  50%      { transform: rotate(13deg); }
+}
+@keyframes flapB {
+  0%, 100% { transform: rotate(11deg); }
+  50%      { transform: rotate(-14deg); }
+}
+.doodle-title {
+  right: calc(-6px * var(--s));
+  top: calc(-16px * var(--s));
+  transform: rotate(-10deg);
+}
+
+/* ============================================================
+   CASE STUDY OVERLAYS — full-screen scrollable reading layer
+   ============================================================ */
+.case-overlay {
+  position: fixed; inset: 0; z-index: 150;
+  background: rgba(8, 8, 8, 0.62); /* slightly deeper scrim now that it's the only dim layer */
+  display: flex; align-items: flex-start; justify-content: center;
+  padding: 5vh 18px;
+  overflow: hidden;
+  opacity: 0; pointer-events: none;
+  transition: opacity 300ms ease;
+}
+.case-overlay.is-open { opacity: 1; pointer-events: auto; }
+.case-close {
+  position: fixed; top: 24px; right: 24px; z-index: 160;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: var(--knob-grad);
+  border: 0.5px solid var(--knob-border);
+  box-shadow: var(--knob-glow);
+  color: var(--ink-90); font-size: 20px; font-family: inherit;
+  display: none; align-items: center; justify-content: center;
+}
+body.case-open .case-close { display: flex; }
+/* While reading, freeze the homepage behind the glass — the browser can
+   cache the blurred backdrop instead of recomputing it every frame. */
+body.case-open .page * { animation-play-state: paused !important; }
+.case-wrap {
+  width: min(880px, 94vw);
+  max-height: 90vh;
+  display: flex; flex-direction: column;
+  overflow: hidden; /* the frosted layer itself never scrolls */
+  background: rgba(var(--panel-bg-rgb), 0.86); /* now actually follows the mode */
+  -webkit-backdrop-filter: blur(22px);
+          backdrop-filter: blur(22px);
+  border: 1px solid var(--card-border);
+  border-radius: 20px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55), var(--white-glow);
+  transform: translateZ(0); /* stable compositor layer — no scroll flicker */
+}
+.case-scroll {
+  flex: 1 1 auto; min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.case-pad { padding: 26px clamp(18px, 4.5vw, 46px) 90px; }
+.case { display: none; }
+.case.is-active { display: block; }
+.case-meta { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 20px; }
+.case h1 {
+  font-size: clamp(30px, 4.5vw, 46px); font-weight: 400;
+  color: var(--ink-85); text-align: center; margin-bottom: 6px;
+}
+.case .case-sub {
+  text-align: center; color: var(--ink-50);
+  font-size: clamp(17px, 2vw, 21px); margin-bottom: 18px;
+}
+.case-intro {
+  text-align: center; max-width: 620px; margin: 0 auto 26px;
+}
+.case h2 {
+  font-size: clamp(24px, 3vw, 31px); font-weight: 400;
+  color: var(--ink-85); margin: 14px 0 10px;
+}
+.case h3 {
+  font-size: clamp(20px, 2.4vw, 25px); font-weight: 400;
+  color: var(--ink-85); margin: 10px 0 8px;
+}
+.case p {
+  font-size: clamp(16px, 1.9vw, 19px); line-height: 1.55;
+  color: var(--ink-70); margin-bottom: 12px;
+}
+.case strong { color: var(--ink-90); font-weight: 700; }
+.case-label {
+  color: var(--tilde); font-size: 15px;
+  letter-spacing: 0.08em; text-transform: lowercase;
+  margin: 34px 0 2px !important;
+}
+.case img {
+  width: 100%; height: auto; display: block;
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  margin: 14px 0 18px;
+  background: #1c1c1c;
+}
+/* Nested information blocks — outer section blocks contain
+   sub-blocks; labeled points carry icon chips. */
+.case-block {
+  background: #191919;
+  border: 1px solid var(--card-border);
+  border-radius: 18px;
+  padding: clamp(18px, 3vw, 28px);
+  margin: 22px 0;
+}
+.case-block > .case-label { margin-top: 0 !important; }
+.case-sub-block {
+  background: #1f1f1f;
+  border: 1px solid #2f2f2f;
+  border-radius: 14px;
+  padding: clamp(14px, 2.4vw, 22px);
+  margin: 18px 0 0;
+}
+.case-num {
+  color: var(--tilde); font-size: 15px;
+  letter-spacing: 0.08em;
+  margin-bottom: 2px !important;
+}
+.case-point { display: flex; gap: 10px; align-items: flex-start; margin: 12px 0; }
+.case-point p { margin: 3px 0 0; }
+.case-icon {
+  flex: 0 0 26px; width: 26px; height: 26px; border-radius: 50%;
+  background: var(--knob-grad);
+  border: 0.5px solid var(--knob-border);
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--ink-70);
+}
+.case-icon svg {
+  width: 14px; height: 14px;
+  fill: none; stroke: currentColor;
+  stroke-width: 1.4; stroke-linecap: round; stroke-linejoin: round;
+}
+.case-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px; margin-top: 14px;
+}
+.case-mini {
+  background: #1f1f1f; border: 1px solid #2f2f2f;
+  border-radius: 14px; padding: 14px;
+}
+.case-mini .case-icon { margin-bottom: 8px; }
+.case-mini h4 { font-size: 17px; font-weight: 700; color: var(--ink-85); margin-bottom: 4px; }
+.case-mini p { font-size: 15px; margin: 0; }
+/* Reading progress line at the top of the overlay */
+.case-progress {
+  position: sticky; top: 0; height: 3px;
+  background: rgba(255, 255, 255, 0.08);
+  z-index: 6; pointer-events: none;
+}
+.case-progress span {
+  display: block; height: 100%; width: 100%;
+  background: var(--ink-90);
+  transform: scaleX(0); transform-origin: 0 50%;
+  will-change: transform;
+}
+.case-next {
+  display: flex; align-items: center; gap: 16px;
+  width: 100%; max-width: 560px;
+  margin: 44px auto 0;
+  background: var(--case-next-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 16px;
+  padding: 14px;
+  color: var(--ink-85);
+  font-family: inherit; text-align: left;
+  transition: border-color var(--transition-ui);
+}
+.case-next:hover { border-color: #5a5a5a; }
+.case-next img {
+  width: 132px; height: 84px; object-fit: cover;
+  border-radius: 10px; border: 1px solid #2f2f2f;
+  margin: 0; flex: 0 0 auto;
+}
+.case-next-kicker {
+  display: block; color: var(--tilde);
+  font-size: 13px; letter-spacing: 0.08em; margin-bottom: 2px;
+}
+.case-next-body { flex: 1; min-width: 0; }
+.case-next-title {
+  display: block;
+  font-size: clamp(19px, 2.4vw, 24px);
+  color: var(--ink-85);
+}
+.case-next-arrow {
+  margin-left: auto; flex: 0 0 auto;
+  font-size: 22px; color: var(--ink-70);
+}
+.case-label { display: flex; align-items: center; gap: 8px; }
+.case-next-name { display: block; font-size: 21px; margin-bottom: 3px; }
+.case-next-desc {
+  display: block; color: var(--ink-50);
+  font-size: 15px; line-height: 1.4;
+}
+.case-chat {
+  text-align: center; margin-top: 40px;
+  color: var(--ink-50); font-size: 17px;
+}
+.case-chat a { color: var(--link); text-decoration: underline; text-underline-position: from-font; }
+.case-chat a:hover { color: var(--ink-90); }
+
+/* ============================================================
+   SPLASH — unchanged behavior; name is now "Josh Lin"
+   ============================================================ */
+.splash {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(20, 20, 20, 0.16);
+  -webkit-backdrop-filter: blur(18px);
+          backdrop-filter: blur(18px);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: var(--gap-md);
+  transition: opacity 450ms ease;
+}
+.splash.is-leaving { opacity: 0; pointer-events: none; }
+.splash.is-leaving .splash-name,
+.splash.is-leaving .splash-sub { opacity: 0; }
+.splash-name {
+  font-size: calc(32px * var(--s)); font-weight: 400; min-height: 1.2em;
+  color: var(--ink-85);
+  opacity: 0.82;
+  transition: transform 420ms ease-in, opacity 420ms ease-in;
+}
+.splash-sub {
+  font-size: calc(21px * var(--s)); color: var(--ink-70);
+  opacity: 0.82;
+  min-height: 1.4em;
+  transition: transform 420ms ease-in, opacity 420ms ease-in;
+}
+.caret {
+  display: inline-block; width: 2px; height: 0.95em;
+  background: var(--ink-70);
+  vertical-align: text-bottom; margin-left: 2px;
+  animation: blink 0.85s step-end infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+.page > * { opacity: 0; }
+body.ready .page > * { opacity: 1; transition: opacity 500ms ease; }
+body.ready .page > *:nth-child(2) { transition-delay: 80ms; }
+body.ready .page > *:nth-child(3) { transition-delay: 160ms; }
+body.ready .page > *:nth-child(4) { transition-delay: 240ms; }
+body.ready .page > *:nth-child(5) { transition-delay: 300ms; }
+body.no-splash .page > * { opacity: 1; transition: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ============================================================
+   MOBILE — per the Figma iPhone frame: left identity + link row,
+   centered toggle, portrait-ish card, sliver peek, tiny dots.
+   ============================================================ */
+@media (max-width: 768px) {
+  :root {
+    --card-w: min(75vw, 296px);
+    --card-h: calc(var(--card-w) / 0.82);  /* mobile is portrait-ish */
+    --radius-card: 12px;
+    --fs-27: 22px;
+    --fs-24: 17px;
+    --gap-lg: 24px;
+    --gap-md: 12px;
+    --gap-sm: 6px;
+    --dot-size: 6px;
+    --ty: 0;
+  }
+  body { overflow-y: auto; }
+
+  .identity {
+    top: 20px; left: 50%; transform: translateX(-50%);
+    width: auto; gap: 12px;
+  }
+  .sparkle-row { top: 59px; width: min(348px, 94vw); font-size: 24px; } /* desktop geometry x0.889 */
+  .toggle { top: 64px; width: 132px; height: 44px; font-size: 19px; }
+  .toggle-knob { top: 4px; left: 4px; width: 56px; height: 36px; }
+  .toggle[aria-checked="true"] .toggle-knob { transform: translateX(68px); }
+  .info-btn { width: 44px; height: 44px; }
+  .dot::before { inset: -16px; } /* ~38px tap zones on 6px dots */
+  .contact {
+    top: 122px; left: 50%; transform: translateX(-50%);
+    gap: 20px; font-size: 19px; /* a notch under "Josh Lin" */
+  }
+  .contact a {
+    display: inline-block;
+    padding: 10px 6px; margin: -10px -6px; /* ~44px tap box, same visual */
+  }
+  .info-pop {
+    top: 156px; left: 50%; width: 92vw;
+    transform: translateX(-50%) translateY(-4px);
+  }
+  .info-pop.is-open { transform: translateX(-50%) translateY(0); }
+  .case-overlay {
+    padding: 0;
+    background: var(--bg);
+    -webkit-backdrop-filter: none;
+            backdrop-filter: none;
+  }
+  .case-wrap {
+    width: 100%; height: 100%; max-height: 100%;
+    border: none; border-radius: 0;
+    background: var(--bg);
+    -webkit-backdrop-filter: none;
+            backdrop-filter: none;
+    box-shadow: none;
+  }
+  .case-close { top: 16px; right: 16px; width: 44px; height: 44px; }
+  .case-pad { padding-top: 76px; } /* content clears the close button */
+  .case-next img { width: 96px; height: 64px; }
+
+  .unit { top: 230px; }
+  .unit.is-peek-left  { left: 0; transform: translate(-91%, 0) scale(var(--peek-scale)); }
+  .unit.is-peek-right { left: 100%; transform: translate(-9%, 0) scale(var(--peek-scale)); }
+  .unit.is-hidden-left  { transform: translate(-140%, 0) scale(var(--peek-scale)); }
+  .unit.is-hidden-right { transform: translate(40%, 0) scale(var(--peek-scale)); }
+
+  .dots { top: auto; bottom: 64px; }
+  .footer { bottom: 14px; font-size: 18px; }
+  .nav-zone, .sr-nav { display: none; }
+  .unit-shadow {
+    top: calc(100% + 36px);
+    left: -8px; right: -8px;
+    height: 18px; filter: blur(20px);
+  }
+}
+body[data-mode="play"] {
+  --case-next-bg: #DCE7EE;
+  --bg: #E8EDF1;                      /* pale — the accents carry the blue, not the fill */
+  --ink-90: rgba(14, 26, 36, 0.85);   /* 7.8:1 */
+  --ink-85: rgba(14, 26, 36, 0.78);   /* 6.4:1 */
+  --ink-70: rgba(14, 26, 36, 0.70);   /* 5.1:1 */
+  --ink-50: rgba(14, 26, 36, 0.68);   /* 4.9:1 — clears the site's own 4.5:1 floor
+                                          (bumped from .64 — the deeper bg needed it) */
+  --ink-43: rgba(14, 26, 36, 0.43);   /* logotype only, same exemption as work mode */
+  --tilde: #1F5273;                   /* 5.2:1 */
+  --link: #16405C;                    /* 6.8:1 */
+  --footer-ink: rgba(14, 26, 36, 0.90); /* .footer's extra 0.8 opacity verified 5.4:1 */
+  --sparkle-a: rgba(14, 26, 36, 0.07);
+  --sparkle-b: rgba(14, 26, 36, 0.11);
+
+  --toggle-track-bg: #EBF4F9;
+  --toggle-track-border: #244F6E;     /* 5.4:1 */
+  --knob-border: #244F6E;
+  --pill-border: #244F6E;
+  --card-border: #1B3F58;             /* deeper steel, the 1px outline */
+  --peek-pill-border: #244F6E;
+
+  --knob-grad: linear-gradient(to bottom, #FFFFFF, #BEDCEC);
+  --pill-grad: linear-gradient(to bottom, rgba(255,255,255,0.55), rgba(160,200,222,0.55));
+  --peek-pill-fill: rgba(255, 255, 255, 0.55);
+
+  --white-glow: 0 0 6px rgba(40, 100, 140, 0.32);
+  --white-glow-pulse: 0 0 16px rgba(25, 80, 120, 0.48);
+  --knob-glow: 0 0 5px rgba(40, 100, 140, 0.30);
+
+  --dot-inactive: #5E8AA6;
+  --panel-bg: #EBF4F9;
+  --panel-bg-rgb: 235, 244, 249;
+  --polaroid-bg: #5E8AA6;
+  --polaroid-border: rgba(14, 26, 36, 0.32);
+  --cursor-ring-border: rgba(14, 26, 36, 0.65);
+  --cursor-ring-fill: rgba(14, 26, 36, 0.09);
+  --fly-fill: #0E1A24;
+}
+
+/* ============================================================
+   MODE VISIBILITY — work-only / play-only content swap.
+   display:none stops layout, paint, AND animation for that
+   subtree at zero cost — switching modes is nearly free.
+   ============================================================ */
+.play-only { display: none; }
+body[data-mode="play"] .work-only { display: none; }
+body[data-mode="play"] #play-stage.play-only { display: block; }
+body[data-mode="play"] #play-dots.play-only,
+body[data-mode="play"] .symbol-field.play-only { display: block; }
+body[data-mode="play"] .doodle.play-only { display: block; }
+
+/* ============================================================
+   PLAY MODE — scattered typographic texture (replaces the
+   brick floor). Flat, blurred glyphs that drift and fade in a
+   slow, gentle loop (opacity + transform only — one shared
+   @keyframes, no JS, no per-frame script cost).
+   ============================================================ */
+.symbol-field {
+  position: fixed; inset: 0; z-index: 0;
+  pointer-events: none; overflow: hidden;
+}
+.symbol {
+  position: absolute;
+  font-family: var(--font-stack);
+  color: var(--tilde);
+  line-height: 1;
+  user-select: none;
+  --rot: 0deg;
+  --op: 0.16;
+  animation: symbolFall 11s ease-in-out infinite;
+  will-change: transform, opacity;
+}
+@keyframes symbolFall {
+  0%   { opacity: 0; transform: translateY(-8px) rotate(var(--rot)); }
+  12%  { opacity: var(--op); }
+  88%  { opacity: var(--op); }
+  100% { opacity: 0; transform: translateY(24px) rotate(var(--rot)); }
+}
+.symbol:nth-child(1) { left: 32.4%; top: 16.9%; font-size: 25px; filter: blur(1.6px); --rot: 13deg; --op: 0.11; animation-duration: 12.1s; animation-delay: -11.0s; font-style: italic; }
+.symbol:nth-child(2) { right: 46.2%; top: 8.4%; font-size: 23px; filter: blur(1.7px); --rot: -26deg; --op: 0.21; animation-duration: 12.0s; animation-delay: -4.8s; font-style: italic; }
+.symbol:nth-child(3) { right: 17.3%; top: 29.6%; font-size: 14px; filter: blur(1.3px); --rot: -10deg; --op: 0.11; animation-duration: 8.7s; animation-delay: -5.0s; font-style: italic; }
+.symbol:nth-child(4) { left: 45.8%; top: 88.0%; font-size: 19px; filter: blur(1.1px); --rot: -2deg; --op: 0.13; animation-duration: 8.6s; animation-delay: -2.6s; }
+.symbol:nth-child(5) { left: 8.9%; top: 50.1%; font-size: 15px; filter: blur(2.2px); --rot: 20deg; --op: 0.14; animation-duration: 8.3s; animation-delay: -5.5s; }
+.symbol:nth-child(6) { right: 15.7%; top: 31.9%; font-size: 26px; filter: blur(1.7px); --rot: 25deg; --op: 0.17; animation-duration: 8.5s; animation-delay: -0.8s; }
+.symbol:nth-child(7) { left: 8.1%; top: 70.3%; font-size: 18px; filter: blur(1.8px); --rot: 24deg; --op: 0.17; animation-duration: 10.0s; animation-delay: -3.9s; font-style: italic; }
+.symbol:nth-child(8) { left: 45.4%; top: 18.5%; font-size: 14px; filter: blur(2.0px); --rot: -17deg; --op: 0.11; animation-duration: 13.2s; animation-delay: -5.3s; }
+.symbol:nth-child(9) { left: 17.6%; top: 40.0%; font-size: 17px; filter: blur(1.4px); --rot: 2deg; --op: 0.12; animation-duration: 12.9s; animation-delay: -12.7s; }
+.symbol:nth-child(10) { left: 23.7%; top: 10.6%; font-size: 14px; filter: blur(0.8px); --rot: -10deg; --op: 0.18; animation-duration: 9.8s; animation-delay: -0.0s; }
+.symbol:nth-child(11) { right: 44.8%; top: 90.7%; font-size: 26px; filter: blur(1.7px); --rot: -27deg; --op: 0.16; animation-duration: 11.2s; animation-delay: -9.8s; }
+.symbol:nth-child(12) { left: 39.6%; top: 20.5%; font-size: 33px; filter: blur(1.0px); --rot: -27deg; --op: 0.15; animation-duration: 8.7s; animation-delay: -4.9s; }
+.symbol:nth-child(13) { right: 40.3%; top: 9.5%; font-size: 16px; filter: blur(1.8px); --rot: 11deg scaleX(-1); --op: 0.15; animation-duration: 12.2s; animation-delay: -5.8s; }
+.symbol:nth-child(14) { right: 6.1%; top: 47.2%; font-size: 18px; filter: blur(1.9px); --rot: 0deg; --op: 0.12; animation-duration: 11.4s; animation-delay: -7.9s; }
+.symbol:nth-child(15) { right: 8.5%; top: 36.3%; font-size: 26px; filter: blur(1.9px); --rot: 5deg; --op: 0.21; animation-duration: 14.8s; animation-delay: -12.8s; }
+.symbol:nth-child(16) { left: 36.5%; top: 18.4%; font-size: 28px; filter: blur(2.0px); --rot: 9deg; --op: 0.16; animation-duration: 12.5s; animation-delay: -7.7s; }
+.symbol:nth-child(17) { left: 20.3%; top: 25.0%; font-size: 20px; filter: blur(1.1px); --rot: 30deg scaleX(-1); --op: 0.2; animation-duration: 10.5s; animation-delay: -0.3s; }
+.symbol:nth-child(18) { left: 26.4%; top: 66.7%; font-size: 32px; filter: blur(2.2px); --rot: 11deg; --op: 0.15; animation-duration: 14.7s; animation-delay: -5.4s; }
+.symbol:nth-child(19) { left: 20.5%; top: 21.8%; font-size: 25px; filter: blur(2.1px); --rot: 28deg; --op: 0.21; animation-duration: 14.4s; animation-delay: -5.0s; }
+.symbol:nth-child(20) { left: 13.3%; top: 38.7%; font-size: 27px; filter: blur(2.1px); --rot: 22deg; --op: 0.12; animation-duration: 13.5s; animation-delay: -4.5s; }
+.symbol:nth-child(21) { right: 9.0%; top: 69.7%; font-size: 15px; filter: blur(1.0px); --rot: 26deg; --op: 0.12; animation-duration: 13.6s; animation-delay: -2.0s; }
+.symbol:nth-child(22) { right: 46.4%; top: 15.1%; font-size: 11px; filter: blur(1.8px); --rot: -16deg; --op: 0.22; animation-duration: 11.0s; animation-delay: -9.6s; }
+.symbol:nth-child(23) { left: 25.7%; top: 30.0%; font-size: 16px; filter: blur(1.2px); --rot: 20deg; --op: 0.17; animation-duration: 13.8s; animation-delay: -0.8s; }
+.symbol:nth-child(24) { right: 15.5%; top: 15.0%; font-size: 14px; filter: blur(2.1px); --rot: -10deg scaleX(-1); --op: 0.16; animation-duration: 12.3s; animation-delay: -9.5s; }
+.symbol:nth-child(25) { right: 39.8%; top: 14.1%; font-size: 12px; filter: blur(1.6px); --rot: 28deg; --op: 0.18; animation-duration: 13.5s; animation-delay: -1.4s; }
+.symbol:nth-child(26) { right: 26.6%; top: 86.9%; font-size: 21px; filter: blur(1.6px); --rot: 32deg; --op: 0.17; animation-duration: 9.4s; animation-delay: -2.6s; }
+.symbol:nth-child(27) { right: 48.8%; top: 83.6%; font-size: 31px; filter: blur(2.1px); --rot: -8deg scaleX(-1); --op: 0.21; animation-duration: 13.9s; animation-delay: -1.9s; }
+.symbol:nth-child(28) { left: 8.8%; top: 25.1%; font-size: 13px; filter: blur(2.0px); --rot: -14deg; --op: 0.18; animation-duration: 14.6s; animation-delay: -9.4s; }
+.symbol:nth-child(29) { left: 14.9%; top: 46.0%; font-size: 27px; filter: blur(2.1px); --rot: -13deg; --op: 0.11; animation-duration: 14.9s; animation-delay: -12.4s; }
+.symbol:nth-child(30) { left: 20.4%; top: 32.3%; font-size: 27px; filter: blur(1.6px); --rot: 23deg; --op: 0.1; animation-duration: 12.9s; animation-delay: -5.0s; }
+.symbol:nth-child(31) { right: 7.7%; top: 13.4%; font-size: 31px; filter: blur(2.1px); --rot: -23deg; --op: 0.13; animation-duration: 9.9s; animation-delay: -0.4s; }
+.symbol:nth-child(32) { left: 14.2%; top: 41.8%; font-size: 31px; filter: blur(1.2px); --rot: -14deg; --op: 0.2; animation-duration: 11.8s; animation-delay: -6.1s; }
+.symbol:nth-child(33) { left: 19.2%; top: 85.4%; font-size: 17px; filter: blur(0.9px); --rot: 0deg scaleX(-1); --op: 0.1; animation-duration: 8.6s; animation-delay: -7.4s; }
+.symbol:nth-child(34) { right: 46.0%; top: 88.3%; font-size: 17px; filter: blur(1.6px); --rot: -3deg; --op: 0.12; animation-duration: 14.6s; animation-delay: -14.2s; }
+.symbol:nth-child(35) { right: 10.4%; top: 60.8%; font-size: 23px; filter: blur(1.5px); --rot: -11deg; --op: 0.12; animation-duration: 9.9s; animation-delay: -8.0s; font-style: italic; }
+.symbol:nth-child(36) { left: 3.7%; top: 49.5%; font-size: 33px; filter: blur(1.2px); --rot: 24deg; --op: 0.16; animation-duration: 8.7s; animation-delay: -7.1s; }
+.symbol:nth-child(37) { right: 19.5%; top: 39.2%; font-size: 22px; filter: blur(2.3px); --rot: 10deg; --op: 0.18; animation-duration: 9.4s; animation-delay: -8.3s; }
+.symbol:nth-child(38) { right: 5.0%; top: 93.3%; font-size: 29px; filter: blur(1.7px); --rot: -1deg; --op: 0.1; animation-duration: 11.0s; animation-delay: -0.6s; }
+.symbol:nth-child(39) { left: 49.6%; top: 92.3%; font-size: 24px; filter: blur(0.9px); --rot: -10deg; --op: 0.18; animation-duration: 9.1s; animation-delay: -4.1s; }
+.symbol:nth-child(40) { right: 6.6%; top: 53.3%; font-size: 16px; filter: blur(1.3px); --rot: 12deg scaleX(-1); --op: 0.22; animation-duration: 9.3s; animation-delay: -3.1s; }
+.symbol:nth-child(41) { right: 25.0%; top: 11.4%; font-size: 29px; filter: blur(1.7px); --rot: 17deg; --op: 0.12; animation-duration: 8.2s; animation-delay: -2.5s; }
+.symbol:nth-child(42) { right: 15.4%; top: 38.8%; font-size: 18px; filter: blur(1.0px); --rot: -15deg; --op: 0.22; animation-duration: 8.3s; animation-delay: -6.9s; }
+.symbol:nth-child(43) { left: 15.1%; top: 51.2%; font-size: 22px; filter: blur(2.0px); --rot: -4deg; --op: 0.2; animation-duration: 8.6s; animation-delay: -0.4s; }
+.symbol:nth-child(44) { left: 6.8%; top: 4.7%; font-size: 23px; filter: blur(1.2px); --rot: 25deg; --op: 0.13; animation-duration: 13.6s; animation-delay: -10.2s; }
+.symbol:nth-child(45) { right: 36.0%; top: 9.1%; font-size: 27px; filter: blur(0.9px); --rot: 0deg; --op: 0.13; animation-duration: 9.6s; animation-delay: -7.3s; }
+.symbol:nth-child(46) { left: 45.3%; top: 80.8%; font-size: 13px; filter: blur(1.2px); --rot: -28deg scaleX(-1); --op: 0.21; animation-duration: 12.3s; animation-delay: -7.9s; }
+.symbol:nth-child(47) { left: 25.9%; top: 71.4%; font-size: 18px; filter: blur(0.8px); --rot: -26deg scaleX(-1); --op: 0.17; animation-duration: 11.4s; animation-delay: -11.1s; }
+.symbol:nth-child(48) { right: 25.9%; top: 94.4%; font-size: 23px; filter: blur(0.9px); --rot: 27deg; --op: 0.14; animation-duration: 8.1s; animation-delay: -3.7s; }
+.symbol:nth-child(49) { left: 21.7%; top: 90.0%; font-size: 16px; filter: blur(1.0px); --rot: 0deg; --op: 0.17; animation-duration: 14.7s; animation-delay: -1.9s; }
+.symbol:nth-child(50) { right: 14.6%; top: 67.7%; font-size: 16px; filter: blur(1.5px); --rot: -30deg; --op: 0.21; animation-duration: 9.1s; animation-delay: -8.6s; }
+
+/* Second and third play flies — same wings/flap, staggered timing */
+
+/* Play-mode placeholder thumbnails (until real cover art lands) */
+.thumb-placeholder {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  text-align: center; padding: 20px;
+  background: linear-gradient(135deg, #FFE9D2, #FFD3AE);
+  color: rgba(42, 31, 23, 0.55);
+  font-size: var(--fs-24);
+  border: 1px dashed rgba(42, 31, 23, 0.3);
+  border-radius: inherit;
+}
+/* Play-mode case placeholders: simple fill-in-the-blank slots,
+   dashed like .thumb-placeholder so the convention matches. */
+.case-slot {
+  border: 1px dashed var(--card-border);
+  border-radius: 12px;
+  padding: 26px;
+  margin: 16px 0;
+  text-align: center;
+  color: var(--ink-50);
+  font-style: italic;
+  font-size: clamp(15px, 1.8vw, 18px);
+  line-height: 1.5;
+}
+.case-slot-image {
+  aspect-ratio: 16 / 9;
+  display: flex; align-items: center; justify-content: center;
+}
+/* ============================================================
+   MODE FLASH — a brief, soft blur+light wash on toggle, subtler
+   than a wipe. One element; backdrop-filter is genuinely costly
+   but this only ever runs once, for ~380ms, on a deliberate click
+   — not continuously, so the cost is bounded and worth it here.
+   ============================================================ */
+.mode-flash {
+  position: fixed; inset: 0; z-index: 300;
+  opacity: 0;
+  pointer-events: none;
+  -webkit-backdrop-filter: blur(16px); /* constant — only opacity animates */
+          backdrop-filter: blur(16px);
+  will-change: opacity;
+}
+.mode-flash.is-active { animation: modeFlash 420ms ease-in-out; }
+@keyframes modeFlash {
+  0%   { opacity: 0; }
+  40%  { opacity: 0.45; }
+  100% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mode-flash.is-active { animation: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- ======================= BACKGROUND ======================= -->
+<div class="floor work-only" aria-hidden="true">
+  <div class="floor-glow"></div>
+  <div class="floor-plane">
+    <svg preserveAspectRatio="none">
+      <defs>
+        <pattern id="brick" width="220" height="128" patternUnits="userSpaceOnUse">
+          <!-- horizontal courses -->
+          <path d="M0 0.5 H220 M0 64.5 H220" stroke="rgba(255,255,255,0.14)" stroke-width="1"/>
+          <!-- vertical joints, alternating per row -->
+          <path d="M110 0 V64 M0 64 V128 M220 64 V128" stroke="rgba(255,255,255,0.14)" stroke-width="1"/>
+        </pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#brick)"/>
+    </svg>
+  </div>
+</div>
+<div class="symbol-field play-only" id="play-symbols" aria-hidden="true">
+  <span class="symbol">z</span><span class="symbol">&amp;</span><span class="symbol">a</span>
+  <span class="symbol">%</span><span class="symbol">&#167;</span><span class="symbol">x</span>
+  <span class="symbol">&#8734;</span><span class="symbol">&#955;</span><span class="symbol">&#182;</span>
+  <span class="symbol">z</span><span class="symbol">&#8225;</span><span class="symbol">o</span>
+  <span class="symbol">&#916;</span><span class="symbol">a</span><span class="symbol">n</span>
+  <span class="symbol">&#960;</span><span class="symbol">e</span><span class="symbol">s</span>
+  <span class="symbol">8</span><span class="symbol">#</span><span class="symbol">*</span>
+  <span class="symbol">&#9674;</span><span class="symbol">&#8224;</span><span class="symbol">&#248;</span>
+  <span class="symbol">w</span><span class="symbol">&#8225;</span><span class="symbol">q</span>
+  <span class="symbol">&#8710;</span><span class="symbol">%</span><span class="symbol">z</span>
+  <span class="symbol">b</span><span class="symbol">d</span><span class="symbol">&#8756;</span>
+  <span class="symbol">&#164;</span><span class="symbol">&#8747;</span><span class="symbol">y</span>
+  <span class="symbol">5</span><span class="symbol">&#8776;</span><span class="symbol">&#167;</span>
+  <span class="symbol">k</span><span class="symbol">&#8711;</span><span class="symbol">3</span>
+  <span class="symbol">&#8225;</span><span class="symbol">%</span><span class="symbol">c</span>
+  <span class="symbol">&#248;</span><span class="symbol">&#966;</span><span class="symbol">2</span>
+  <span class="symbol">&#8756;</span><span class="symbol">r</span>
+</div>
+
+<!-- ======================= PAGE ======================= -->
+<div class="page">
+
+  <!-- Sparkle divider (decorative) -->
+  <div class="sparkle-row" aria-hidden="true">° ｡𖦹˚ ｡𖦹°‧° ｡𖦹˚ ｡𖦹°‧° ｡𖦹˚ ｡𖦹°‧° ｡𖦹˚ ｡𖦹°‧° ｡𖦹˚ ｡𖦹°‧° ｡𖦹˚ ｡𖦹°‧° ｡𖦹˚ ｡𖦹°‧° ｡𖦹˚ ｡𖦹°‧° ｡𖦹˚</div>
+
+  <!-- Identity: logotype + info button -->
+  <header class="identity">
+    <h1 id="identity-name">Jo<span class="lf-bi">s</span>h Li<span class="lf-b">n</span><span class="sparkle-trail" aria-hidden="true">° ｡𖦹˚ ｡𖦹°‧° ｡𖦹˚</span></h1>
+    <button class="info-btn" id="info-btn" aria-expanded="false" aria-controls="info-pop"
+            aria-label="About Josh">
+      <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+        <path fill-rule="evenodd" d="M15 8A7 7 0 1 1 1 8a7 7 0 0 1 14 0ZM9 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0ZM6.75 8a.75.75 0 0 0 0 1.5h.75v1.75a.75.75 0 0 0 1.5 0v-2.5A.75.75 0 0 0 8.25 8h-1.5Z" clip-rule="evenodd"/>
+      </svg>
+    </button>
+    <div class="info-pop" id="info-pop" role="region" aria-label="About me">
+      <p class="info-title"><span class="tilde">~ </span>abou<span class="lf-b">t</span> m<span class="lf-b">e</span><span class="tilde"> ~</span></p>
+      <div class="polaroid">
+        <!-- IMPORTANT before deploy: export your photo from Figma (page 4) as me.jpg
+             next to index.html — the fallback URL below expires in ~7 days -->
+        <img src="me.jpg" alt="Photo of Josh Lin"
+             onerror="this.onerror=null;this.src='https://www.figma.com/api/mcp/asset/317fafc9-9b2e-4a0d-8351-2b1d90737a36';" />
+      </div>
+      <p class="info-text">Product designer for information systems — reducing friction in nonprofit workflows &amp; making campus web clearer. Computational Media @ Georgia Tech, half designer, half developer.</p>
+    </div>
+    <div class="doodle doodle-title" aria-hidden="true">
+      <svg viewBox="0 0 40 40" fill="none">
+        <g class="wing wing-a"><ellipse cx="17.5" cy="11" rx="4.8" ry="10.5" transform="rotate(4 17.5 11)" fill="var(--fly-fill)" fill-opacity="0.30"/></g>
+        <g class="wing wing-b"><ellipse cx="30" cy="20" rx="10.5" ry="4.6" transform="rotate(-15 30 20)" fill="var(--fly-fill)" fill-opacity="0.30"/></g>
+        <circle cx="17" cy="26" r="7" fill="var(--fly-fill)" fill-opacity="0.34"/>
+      </svg>
+    </div>
+  </header>
+
+  <!-- Mode toggle -->
+  <button class="toggle" id="mode-toggle" role="switch" aria-checked="false"
+          aria-label="Switch between work and play mode">
+    <span class="toggle-knob" aria-hidden="true"></span>
+    <span class="toggle-label lab-work">work</span>
+    <span class="toggle-label">pl<span class="lf-bi">a</span>y</span>
+  </button>
+
+  <!-- Contact row -->
+  <nav class="contact" aria-label="Contact links">
+    <a href="https://www.dropbox.com/scl/fi/q5mwydlur2dljljp7bj9f/Joshua_Lin_Resume.pdf?rlkey=gm9ov9hzt7h4m8pvemrhs29ho&st=el81fgpj&dl=0" target="_blank" rel="noopener"><span class="u">Resume</span> <span class="lf-b">⇗</span></a>
+    <a href="https://www.linkedin.com/in/joshua-lin-949202294/" target="_blank" rel="noopener"><span class="u">LinkedIn</span> ⇗</a>
+    <a href="mailto:jlin674@gatech.edu"><span class="u">Email</span> ⇗</a>
+  </nav>
+
+  <!-- Stage -->
+  <section class="stage work-only" id="stage" role="region"
+           aria-roledescription="carousel" aria-label="Case studies">
+
+    <div class="unit" data-index="0">
+      <div class="unit-top">
+        <div class="tag">
+          <span class="pill">nonprofit</span>
+          <svg class="connector" viewBox="0 0 19 16" fill="none" preserveAspectRatio="none" aria-hidden="true"><path d="M9.5 0 C 7.5 5, 11.5 9, 9.5 16" stroke="currentColor" stroke-width="1.3" stroke-dasharray="3 3" stroke-linecap="round"/></svg>
+        </div>
+        <div class="tag">
+          <span class="pill">live products</span>
+          <svg class="connector" viewBox="0 0 19 16" fill="none" preserveAspectRatio="none" aria-hidden="true"><path d="M9.5 0 C 11.5 5, 7.5 9, 9.5 16" stroke="currentColor" stroke-width="1.3" stroke-dasharray="3 3" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+      <!-- TODO: real case-study URL -->
+      <div class="card" role="button" data-case="pmt"
+         aria-label="Open case study: Product Maintenance Team — maintaining live nonprofit products for Bagel Rescue and AARF">
+        <span class="card-clip"><img class="thumb-img" src="pmt-thumbnail.png"
+             alt="Product Maintenance Team — admin route editing and volunteer management interfaces" /></span>
+        <span class="card-glow" aria-hidden="true"></span>
+      </div>
+      <div class="unit-name">
+        <h2><span class="tilde">~ </span>produc<span class="lf-b">t</span> maintenanc<span class="lf-b">e</span> team<span class="tilde"> ~</span></h2>
+        <p>[maintaining live nonprofit products]</p>
+      </div>
+      <span class="unit-shadow" aria-hidden="true"></span>
+    </div>
+
+    <div class="unit" data-index="1">
+      <div class="unit-top">
+        <div class="tag">
+          <span class="pill">enterprise</span>
+          <svg class="connector" viewBox="0 0 19 16" fill="none" preserveAspectRatio="none" aria-hidden="true"><path d="M9.5 0 C 7.5 5, 11.5 9, 9.5 16" stroke="currentColor" stroke-width="1.3" stroke-dasharray="3 3" stroke-linecap="round"/></svg>
+        </div>
+        <div class="tag">
+          <span class="pill">campus role</span>
+          <svg class="connector" viewBox="0 0 19 16" fill="none" preserveAspectRatio="none" aria-hidden="true"><path d="M9.5 0 C 11.5 5, 7.5 9, 9.5 16" stroke="currentColor" stroke-width="1.3" stroke-dasharray="3 3" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+      <div class="card" role="button" data-case="gtoit"
+         aria-label="Open case study: GT OIT — Center for Teaching and Learning site and blog redesigns">
+        <span class="card-clip"><img class="thumb-img" src="gtoit-thumbnail.png"
+             alt="GT OIT — Center for Teaching and Learning site and blog redesigns" /></span>
+        <span class="card-glow" aria-hidden="true"></span>
+      </div>
+      <div class="unit-name">
+        <h2><span class="tilde">~ </span>g<span class="lf-b">t</span> oit redesign<span class="lf-b">s</span><span class="tilde"> ~</span></h2>
+        <p>[clarity &amp; hierarchy for campus web]</p>
+      </div>
+      <span class="unit-shadow" aria-hidden="true"></span>
+    </div>
+
+    <div class="unit" data-index="2">
+      <div class="unit-top">
+        <div class="tag">
+          <span class="pill">ui/ux</span>
+          <svg class="connector" viewBox="0 0 19 16" fill="none" preserveAspectRatio="none" aria-hidden="true"><path d="M9.5 0 C 7.5 5, 11.5 9, 9.5 16" stroke="currentColor" stroke-width="1.3" stroke-dasharray="3 3" stroke-linecap="round"/></svg>
+        </div>
+        <div class="tag">
+          <span class="pill">bootcamp project</span>
+          <svg class="connector" viewBox="0 0 19 16" fill="none" preserveAspectRatio="none" aria-hidden="true"><path d="M9.5 0 C 11.5 5, 7.5 9, 9.5 16" stroke="currentColor" stroke-width="1.3" stroke-dasharray="3 3" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+      <div class="card" role="button" data-case="spitfire"
+         aria-label="Open case study: Spitfire — an app for hot takes and human connection">
+        <span class="card-clip"><img class="thumb-img" src="spitfire-thumbnail.jpg"
+             alt="Spitfire — playful peach-toned mobile app screens for sharing hot takes" /></span>
+        <span class="card-glow" aria-hidden="true"></span>
+      </div>
+      <div class="unit-name">
+        <h2><span class="tilde">~ </span>s<span class="lf-b">p</span>itfir<span class="lf-b">e</span><span class="tilde"> ~</span></h2>
+        <p>[an app for hot takes]</p>
+      </div>
+      <span class="unit-shadow" aria-hidden="true"></span>
+    </div>
+
+    <!-- Keyboard-visible fallbacks (pointer users navigate via the peek cards) -->
+    <button class="sr-nav sr-nav-prev" id="sr-prev">previous project</button>
+    <button class="sr-nav sr-nav-next" id="sr-next">next project</button>
+  </section>
+
+  <!-- Dots -->
+  <div class="dots work-only" id="work-dots" role="tablist" aria-label="Choose project">
+    <button class="dot is-active" data-index="0" aria-label="Project 1 of 3: Product Maintenance Team"></button>
+    <button class="dot" data-index="1" aria-label="Project 2 of 3: GT OIT Redesigns"></button>
+    <button class="dot" data-index="2" aria-label="Project 3 of 3: Spitfire"></button>
+  </div>
+
+  <!-- ======================= PLAY STAGE (placeholder content) ======================= -->
+  <section class="stage play-only" id="play-stage" role="region"
+           aria-roledescription="carousel" aria-label="Play projects">
+
+    <div class="unit" data-index="0">
+      <div class="unit-top">
+        <div class="tag">
+          <span class="pill">sandbox</span>
+          <svg class="connector" viewBox="0 0 19 16" fill="none" preserveAspectRatio="none" aria-hidden="true"><path d="M9.5 0 C 7.5 5, 11.5 9, 9.5 16" stroke="currentColor" stroke-width="1.3" stroke-dasharray="3 3" stroke-linecap="round"/></svg>
+        </div>
+        <div class="tag">
+          <span class="pill">publication</span>
+          <svg class="connector" viewBox="0 0 19 16" fill="none" preserveAspectRatio="none" aria-hidden="true"><path d="M9.5 0 C 11.5 5, 7.5 9, 9.5 16" stroke="currentColor" stroke-width="1.3" stroke-dasharray="3 3" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+      <div class="card" role="button" data-case="sandbox" aria-label="Sandbox — playful architectural publication site">
+        <span class="card-clip"><div class="thumb-img thumb-placeholder">play thumbnail — coming soon</div></span>
+        <span class="card-glow" aria-hidden="true"></span>
+      </div>
+      <div class="unit-name">
+        <h2><span class="tilde">~ </span>sandbo<span class="lf-b">x</span><span class="tilde"> ~</span></h2>
+        <p>[playful layouts, built for a student publication]</p>
+      </div>
+      <span class="unit-shadow" aria-hidden="true"></span>
+    </div>
+
+    <div class="unit" data-index="1">
+      <div class="unit-top">
+        <div class="tag">
+          <span class="pill">generative art</span>
+          <svg class="connector" viewBox="0 0 19 16" fill="none" preserveAspectRatio="none" aria-hidden="true"><path d="M9.5 0 C 7.5 5, 11.5 9, 9.5 16" stroke="currentColor" stroke-width="1.3" stroke-dasharray="3 3" stroke-linecap="round"/></svg>
+        </div>
+        <div class="tag">
+          <span class="pill">creative coding</span>
+          <svg class="connector" viewBox="0 0 19 16" fill="none" preserveAspectRatio="none" aria-hidden="true"><path d="M9.5 0 C 11.5 5, 7.5 9, 9.5 16" stroke="currentColor" stroke-width="1.3" stroke-dasharray="3 3" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+      <div class="card" role="button" data-case="genart" aria-label="Generative art experiments">
+        <span class="card-clip"><div class="thumb-img thumb-placeholder">play thumbnail — coming soon</div></span>
+        <span class="card-glow" aria-hidden="true"></span>
+      </div>
+      <div class="unit-name">
+        <h2><span class="tilde">~ </span>generativ<span class="lf-b">e</span> ar<span class="lf-b">t</span><span class="tilde"> ~</span></h2>
+        <p>[TODO: title + description]</p>
+      </div>
+      <span class="unit-shadow" aria-hidden="true"></span>
+    </div>
+
+    <div class="unit" data-index="2">
+      <div class="unit-top">
+        <div class="tag">
+          <span class="pill">ai video</span>
+          <svg class="connector" viewBox="0 0 19 16" fill="none" preserveAspectRatio="none" aria-hidden="true"><path d="M9.5 0 C 7.5 5, 11.5 9, 9.5 16" stroke="currentColor" stroke-width="1.3" stroke-dasharray="3 3" stroke-linecap="round"/></svg>
+        </div>
+        <div class="tag">
+          <span class="pill">motion</span>
+          <svg class="connector" viewBox="0 0 19 16" fill="none" preserveAspectRatio="none" aria-hidden="true"><path d="M9.5 0 C 11.5 5, 7.5 9, 9.5 16" stroke="currentColor" stroke-width="1.3" stroke-dasharray="3 3" stroke-linecap="round"/></svg>
+        </div>
+      </div>
+      <div class="card" role="button" data-case="aivideo" aria-label="AI video experiments">
+        <span class="card-clip"><div class="thumb-img thumb-placeholder">play thumbnail — coming soon</div></span>
+        <span class="card-glow" aria-hidden="true"></span>
+      </div>
+      <div class="unit-name">
+        <h2><span class="tilde">~ </span>ai vide<span class="lf-b">o</span><span class="tilde"> ~</span></h2>
+        <p>[TODO: title + description]</p>
+      </div>
+      <span class="unit-shadow" aria-hidden="true"></span>
+    </div>
+
+    <button class="sr-nav sr-nav-prev" id="play-sr-prev" style="display:none">previous project</button>
+    <button class="sr-nav sr-nav-next" id="play-sr-next">next project</button>
+  </section>
+
+  <!-- Proximity zones around the peeks (JS-positioned) — shared by both
+       modes, kept OUTSIDE both work-only/play-only stages so a mode switch
+       never leaves them stuck inside a display:none subtree. -->
+  <button class="nav-zone" id="zone-prev" tabindex="-1" aria-hidden="true"></button>
+  <button class="nav-zone" id="zone-next" tabindex="-1" aria-hidden="true"></button>
+
+  <div class="dots play-only" id="play-dots" role="tablist" aria-label="Choose play project">
+    <button class="dot is-active" data-index="0" aria-label="Play project 1 of 3: Sandbox"></button>
+    <button class="dot" data-index="1" aria-label="Play project 2 of 3: Generative art"></button>
+    <button class="dot" data-index="2" aria-label="Play project 3 of 3: AI video"></button>
+  </div>
+
+  <!-- Footer credit + doodles -->
+  <p class="footer">~~~~~Coded and Designed by Joshua Lin~~~~~</p>
+
+  <p class="visually-hidden" aria-live="polite" id="live"></p>
+</div>
+
+<!-- Fly doodles (decorative; wings flap) — one fly only, shared by both modes -->
+
+<!-- Custom cursor -->
+<div class="mode-flash" id="mode-flash" aria-hidden="true"></div>
+
+<div class="cursor" id="cursor" aria-hidden="true">
+  <div class="cursor-dot"></div>
+  <div class="cursor-pill"><span class="cursor-label" id="cursor-label"></span></div>
+</div>
+
+<!-- ======================= CASE STUDY OVERLAYS ======================= -->
+<!-- Content and structure mirror joshualinportfolio.com/{pmt,gtoit,spitfire}.
+     Images are hotlinked from the current site's CDN — download and localize
+     them before retiring the old site. -->
+<!-- Icon library for case study blocks -->
+<svg style="display:none" aria-hidden="true">
+  <symbol id="i-problem" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.2"/><path d="M8 5v3.4M8 11.2h.01"/></symbol>
+  <symbol id="i-fix" viewBox="0 0 16 16"><path d="M10.8 2.8l2.4 2.4L5.4 13l-2.8.4.4-2.8z"/></symbol>
+  <symbol id="i-impact" viewBox="0 0 16 16"><path d="M2.5 11.5l4.3-4.3 2.4 2.4 4.3-4.4M13.5 5.2h-3M13.5 5.2v3"/></symbol>
+  <symbol id="i-goal" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6"/><circle cx="8" cy="8" r="2.6"/></symbol>
+  <symbol id="i-choice" viewBox="0 0 16 16"><path d="M8 2.6c.5 3 1.4 3.9 4.4 4.4-3 .5-3.9 1.4-4.4 4.4-.5-3-1.4-3.9-4.4-4.4 3-.5 3.9-1.4 4.4-4.4z"/></symbol>
+  <symbol id="i-outcome" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.2"/><path d="M5.4 8.2l1.8 1.8 3.4-3.8"/></symbol>
+  <symbol id="i-question" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.2"/><path d="M6.3 6.2c.2-1 1-1.6 1.9-1.5 1 .1 1.7.8 1.6 1.7-.1 1.2-1.7 1.4-1.8 2.6M8 11.4h.01"/></symbol>
+  <symbol id="i-approach" viewBox="0 0 16 16"><path d="M2.5 8H12M12 8L9.2 5.2M12 8l-2.8 2.8"/></symbol>
+  <symbol id="i-chat" viewBox="0 0 16 16"><path d="M13.5 7.2c0 2.6-2.5 4.6-5.5 4.6-.7 0-1.4-.1-2-.3l-3.4 1.1 1-2.4C2.9 9.4 2.5 8.4 2.5 7.2 2.5 4.6 5 2.6 8 2.6s5.5 2 5.5 4.6z"/></symbol>
+  <symbol id="i-users" viewBox="0 0 16 16"><circle cx="8" cy="5.6" r="2.6"/><path d="M3.2 13.4c.6-2.4 2.5-3.6 4.8-3.6s4.2 1.2 4.8 3.6"/></symbol>
+  <symbol id="i-eye" viewBox="0 0 16 16"><path d="M1.8 8s2.3-4.2 6.2-4.2S14.2 8 14.2 8s-2.3 4.2-6.2 4.2S1.8 8 1.8 8z"/><circle cx="8" cy="8" r="1.8"/></symbol>
+  <symbol id="i-shield" viewBox="0 0 16 16"><path d="M8 14.2s5-2.4 5-6.4V3.6L8 1.8 3 3.6v4.2c0 4 5 6.4 5 6.4z"/></symbol>
+  <symbol id="i-clock" viewBox="0 0 16 16"><circle cx="8" cy="8" r="6.2"/><path d="M8 4.8V8l2.2 1.6"/></symbol>
+  <symbol id="i-heart" viewBox="0 0 16 16"><path d="M8 13S2.8 9.9 2.8 6.4c0-1.8 1.4-3 3-3 1 0 1.8.5 2.2 1.2.4-.7 1.2-1.2 2.2-1.2 1.6 0 3 1.2 3 3C13.2 9.9 8 13 8 13z"/></symbol>
+  <symbol id="i-flow" viewBox="0 0 16 16"><circle cx="4" cy="4.5" r="1.8"/><circle cx="12" cy="11.5" r="1.8"/><path d="M5.5 5.8c2.2 2 2.8 2.1 5 3.9"/></symbol>
+  <symbol id="i-layers" viewBox="0 0 16 16"><path d="M8 2.8l5.5 3L8 8.8l-5.5-3z"/><path d="M2.5 9.4L8 12.4l5.5-3"/></symbol>
+  <symbol id="i-hier" viewBox="0 0 16 16"><path d="M3 13V7.5M8 13V3.5M13 13V7"/></symbol>
+</svg>
+
+<div class="case-overlay" id="case-overlay" role="dialog" aria-modal="true" aria-label="Case study">
+  <div class="case-wrap">
+  <div class="case-scroll" id="case-scroll">
+    <div class="case-progress" aria-hidden="true"><span></span></div>
+    <div class="case-pad">
+
+    <!-- ============ PMT ============ -->
+    <article class="case" id="case-pmt" data-case-name="Product Maintenance Team">
+      <div class="case-meta">
+        <span class="pill">product designer</span>
+        <span class="pill">4 engineers · 1 pm</span>
+        <span class="pill">3 weeks</span>
+        <span class="pill">nonprofit tooling</span>
+      </div>
+      <h1><span class="tilde">~ </span>produc<span class="lf-b">t</span> maintenanc<span class="lf-b">e</span> team<span class="tilde"> ~</span></h1>
+      <p class="case-sub">@ Bits of Good</p>
+      <p class="case-intro">I redesigned high-impact fixes for Bagel Rescue and AARF, with each intervention reducing manual work, preventing mistakes, and helping nonprofit admins move with confidence.</p>
+      <img src="https://framerusercontent.com/images/zY9rxUMJFta2cb266MxMq6L10A.png?width=1832&height=1104" width="1832" height="1104" alt="Product Maintenance Team project overview" loading="lazy" decoding="async" />
+
+      <div class="case-block">
+        <p class="case-label"><span class="case-icon"><svg><use href="#i-eye"/></svg></span>overview</p>
+        <h2>Maintaining and improving BOG's deployed nonprofits</h2>
+        <p>After deploying these nonprofits, Bits of Good still finds moments within the nonprofits' software where small interface changes could unlock great operational value with fewer workarounds, faster edits, and clearer communication.</p>
+      </div>
+
+      <div class="case-block">
+        <p class="case-label"><span class="case-icon"><svg><use href="#i-hier"/></svg></span>organization</p>
+        <h2>Bagel Rescue</h2>
+        <p>Bagel Rescue needed improvement to their admin control over volunteers, routes, and delivery locations to greatly reduce friction in doing such tasks.</p>
+
+        <div class="case-sub-block">
+          <p class="case-num">01</p>
+          <h3>Volunteer management: make editing seamless</h3>
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-problem"/></svg></span><p><strong>Problem —</strong> admins <strong>do not have a streamlined way to delete and edit volunteers</strong> without leaving their main flow. This causes <strong>friction in daily tasks</strong>, slowing down their coordination, and thus reducing impact.</p></div>
+          <img src="https://framerusercontent.com/images/zlsr8keaDS2ju06HDix9Y4bjAg.png?width=4130&height=2608" width="4130" height="2608" alt="Original volunteer management flow" loading="lazy" decoding="async" />
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-fix"/></svg></span><p><strong>Fix no. 1 —</strong> added an <strong>options entry point with edit and deletion functionality</strong>, making both easy to access from one singular place.</p></div>
+          <img src="https://framerusercontent.com/images/X7JTtFiUwHhEuPkOOQxdcn33oL4.png?width=4130&height=2608" width="4130" height="2608" alt="Options entry point with edit and delete" loading="lazy" decoding="async" />
+          <img src="https://framerusercontent.com/images/Pey1lJDLLRxSmhxIzRJzECrRAI.png?width=4130&height=2608" width="4130" height="2608" alt="Volunteer list to edit flow" loading="lazy" decoding="async" />
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-fix"/></svg></span><p><strong>Fix no. 2 —</strong> in addition to a pop-up modal, <strong>editing is also accessible through the volunteer information modal</strong> — another route to the task when viewing a volunteer's information.</p></div>
+          <img src="https://framerusercontent.com/images/UidehHFtx7CRvUqox9hZAxqWg.png?width=4130&height=2608" width="4130" height="2608" alt="Volunteer information modal with edit" loading="lazy" decoding="async" />
+          <img src="https://framerusercontent.com/images/rroSTTdcnOrXjHhrqmEqO6oAIE.gif?width=1164&height=720" width="1164" height="720" alt="Volunteer editing flow in motion" loading="lazy" decoding="async" />
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-impact"/></svg></span><p><strong>Impact —</strong> <strong>reduced the path to editing and deletion by 40% in timed trials</strong>, giving admins a faster way to manage volunteers without leaving their primary workflow.</p></div>
+        </div>
+
+        <div class="case-sub-block">
+          <p class="case-num">02</p>
+          <h3>Route management: edit the system without rebuilding it</h3>
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-problem"/></svg></span><p><strong>Problem —</strong> admins <strong>do not have a streamlined way to edit routes</strong>; it requires navigating away from the main flow, creating friction in day-to-day operations.</p></div>
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-fix"/></svg></span><p><strong>Fix —</strong> introduced the <strong>ability to edit a route from a modal</strong>, which takes you to the <strong>edit route page, where you can then edit locations</strong>.</p></div>
+          <img src="https://framerusercontent.com/images/nRAmOxLQOhWK9pDgFftFJsQ5R4.png?width=4130&height=2608" width="4130" height="2608" alt="Edit route interface" loading="lazy" decoding="async" />
+          <img src="https://framerusercontent.com/images/bzmReT56e7Q1PmszBoaNZmA14.gif?width=1164&height=720" width="1164" height="720" alt="Edit route flow in motion" loading="lazy" decoding="async" />
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-impact"/></svg></span><p><strong>Impact —</strong> removed the need to delete and recreate routes, <strong>reducing route modification time by approximately 40%</strong> and preserving operational context.</p></div>
+        </div>
+      </div>
+
+      <div class="case-block">
+        <p class="case-label"><span class="case-icon"><svg><use href="#i-hier"/></svg></span>organization</p>
+        <h2>AARF</h2>
+        <p>Atlanta Animal Rescue Friends needed more effective volunteer operations across timesheets, emails, and ID records so staff could manage people faster and with greater ease.</p>
+
+        <div class="case-sub-block">
+          <p class="case-num">01</p>
+          <h3>Timesheet tracker: moving paperwork into a scan-friendly system</h3>
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-problem"/></svg></span><p><strong>Problem —</strong> AARF currently <strong>uses a piece of paper and manually enters the information into an Excel sheet</strong> — slow, time-consuming manual entry.</p></div>
+          <img src="https://framerusercontent.com/images/kJVbMLKizYO0Xkhz1MWGHHFnhuc.png?width=4130&height=2608" width="4130" height="2608" alt="Original paper timesheet process" loading="lazy" decoding="async" />
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-fix"/></svg></span><p><strong>Fix no. 1 —</strong> transitioned it into a <strong>mobile-first volunteer timesheet</strong>, <strong>similar in format to a Google Form</strong> — on-the-go and intuitive. The admin side features <strong>blocks that populate automatically</strong> as timesheets are submitted, plus search for finding a specific timesheet.</p></div>
+          <img src="https://framerusercontent.com/images/Vnlv1JveKN4bFD8yhmkcKB2SITg.png?width=4130&height=2608" width="4130" height="2608" alt="Mobile timesheet tracker" loading="lazy" decoding="async" />
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-fix"/></svg></span><p><strong>Fix no. 2 —</strong> also designed a <strong>desktop interface</strong> for users who prefer entering or reviewing timesheets on desktop.</p></div>
+          <img src="https://framerusercontent.com/images/bTvExE7aiU3MyyjHwA7s4wbskQ.png?width=4130&height=2608" width="4130" height="2608" alt="Desktop timesheet interface" loading="lazy" decoding="async" />
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-impact"/></svg></span><p><strong>Impact —</strong> made hour review easier on the go while keeping desktop admins in context — <strong>sped up timesheet organization by 65%</strong> versus manual entry.</p></div>
+        </div>
+
+        <div class="case-sub-block">
+          <p class="case-num">02</p>
+          <h3>Volunteer email: reminders that are consistent and clear</h3>
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-problem"/></svg></span><p><strong>Problem —</strong> volunteers were <strong>not getting consistent reminders</strong> about upcoming shifts, resulting in <strong>missed shifts</strong> and <strong>manual weekly reminder emails</strong>.</p></div>
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-fix"/></svg></span><p><strong>Fix —</strong> created an email that is <strong>easy to automate and scan</strong>: preset text with interchangeable volunteer name and shift details, with <strong>sectioned details</strong> so <strong>the most important information is delivered quickly and at a glance</strong>.</p></div>
+          <img src="https://framerusercontent.com/images/nd31GgYihTSNoIeAJ2IxC6o04.png?width=4130&height=2608" width="4130" height="2608" alt="Redesigned volunteer reminder email" loading="lazy" decoding="async" />
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-impact"/></svg></span><p><strong>Impact —</strong> a <strong>15% attendance improvement</strong> through automating the message and making it clear and quickly scannable.</p></div>
+        </div>
+
+        <div class="case-sub-block">
+          <p class="case-num">03</p>
+          <h3>Volunteer ID deletion: an internal way to delete</h3>
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-problem"/></svg></span><p><strong>Problem —</strong> admins <strong>lack an internal way to delete Volunteer IDs</strong>, so <strong>outdated or incorrect IDs remain in the system</strong> for weeks or months until a BoG developer can remove them.</p></div>
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-fix"/></svg></span><p><strong>Fix no. 1 —</strong> added a <strong>deletion icon</strong> to each ID in the list for <strong>direct deletion</strong> — red, to keep it distinct from editing.</p></div>
+          <img src="https://framerusercontent.com/images/UgQLTWjsWcfR5DhaFg08Z1p96k.png?width=4130&height=1986" width="4130" height="1986" alt="Volunteer ID delete action" loading="lazy" decoding="async" />
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-fix"/></svg></span><p><strong>Fix no. 2 —</strong> the <strong>edit ID modal also carries deletion</strong> for when they're already in an editing context.</p></div>
+          <img src="https://framerusercontent.com/images/IztGedgFWz6FW18Uzs3VRV7k7I.png?width=4130&height=2608" width="4130" height="2608" alt="Volunteer ID edit modal with delete" loading="lazy" decoding="async" />
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-impact"/></svg></span><p><strong>Impact —</strong> <strong>reduced record-management friction</strong> by making ID deletion possible directly in the software, not through BoG.</p></div>
+        </div>
+      </div>
+
+      <div class="case-block">
+        <p class="case-label"><span class="case-icon"><svg><use href="#i-outcome"/></svg></span>takeaways</p>
+        <h2>What this maintenance work taught me</h2>
+        <p>Strong maintenance design is not about adding more UI. It is about finding the smallest point of leverage, clarifying the system around it, and helping users trust the next action.</p>
+        <div class="case-grid">
+          <div class="case-mini"><span class="case-icon"><svg><use href="#i-chat"/></svg></span><h4>Communication keeps sprints moving</h4><p>Clarify confusing tickets early so design and engineering solve the same problem.</p></div>
+          <div class="case-mini"><span class="case-icon"><svg><use href="#i-layers"/></svg></span><h4>Mental models reduce overwhelm</h4><p>Group dense information into categories users already expect.</p></div>
+          <div class="case-mini"><span class="case-icon"><svg><use href="#i-flow"/></svg></span><h4>Existing flows are assets</h4><p>New features feel easier when they extend familiar patterns.</p></div>
+        </div>
+      </div>
+
+      <button class="case-next" data-open="gtoit">
+        <img src="gtoit-thumbnail.png" alt="" loading="lazy" />
+        <span class="case-next-body">
+          <span class="case-next-kicker">explore more work</span>
+          <span class="case-next-title"><span class="tilde">~ </span>georgia tech oit<span class="tilde"> ~</span></span>
+          <span class="case-next-desc">Modernized Georgia Tech web experiences for clearer navigation and stronger UX.</span>
+        </span>
+        <span class="case-next-arrow" aria-hidden="true">→</span>
+      </button>
+      <p class="case-chat">let's chat! <a href="https://www.linkedin.com/in/joshua-lin-949202294/" target="_blank" rel="noopener">reach out on LinkedIn ⇗</a></p>
+    </article>
+
+    <!-- ============ GT OIT ============ -->
+    <article class="case" id="case-gtoit" data-case-name="GT OIT">
+      <div class="case-meta">
+        <span class="pill">ui/ux designer</span>
+        <span class="pill">design systems</span>
+        <span class="pill">figma</span>
+        <span class="pill">drupal + wordpress</span>
+      </div>
+      <h1><span class="tilde">~ </span>georgi<span class="lf-b">a</span> tech oi<span class="lf-b">t</span><span class="tilde"> ~</span></h1>
+      <p class="case-sub">Center for Teaching &amp; Learning</p>
+      <p class="case-intro">I redesigned CTL pages and blog experiences inside OIT's design system, turning dense information into clearer reading paths for students, faculty, and site maintainers.</p>
+      <img src="https://framerusercontent.com/images/IcLCwIYX8uJCYlpOIo6y6gFSr6M.png?width=2127&height=1202" width="2127" height="1202" alt="GT OIT website redesign preview" loading="lazy" decoding="async" />
+
+      <div class="case-block">
+        <p class="case-label"><span class="case-icon"><svg><use href="#i-eye"/></svg></span>overview</p>
+        <h2>Modernization without starting over</h2>
+        <p>The work focused on translating dense CTL content into a more readable system while preserving existing information, fitting OIT's component library, and staying realistic for Drupal and WordPress implementation.</p>
+      </div>
+
+      <div class="case-block">
+        <p class="case-label"><span class="case-icon"><svg><use href="#i-hier"/></svg></span>project area</p>
+        <h2>CTL site refresh</h2>
+        <p>CTL's existing pages were content-heavy and visually outdated. The redesign used OIT's system to create stronger hierarchy, clearer section separation, and a structure users could scan faster.</p>
+        <img src="https://framerusercontent.com/images/QxnXUPehDz1aH2H2uT2SBNWE888.png?width=1620&height=1678" width="1620" height="1678" alt="CTL landing page redesign preview" loading="lazy" decoding="async" />
+
+        <div class="case-sub-block">
+          <p class="case-num">01</p>
+          <h3>Hierarchy: guide the eye through the page</h3>
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-goal"/></svg></span><p><strong>Goal —</strong> rank the page content so users could understand what mattered first.</p></div>
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-fix"/></svg></span><p><strong>Fix —</strong> used larger hero treatments, clearer section modules, and supporting blocks to create a more intentional reading path.</p></div>
+          <img src="https://framerusercontent.com/images/pRBi9knnSeirik00ScoTqm46a4.png?width=4130&height=2608" width="4130" height="2608" alt="CTL landing page redesigned layout" loading="lazy" decoding="async" />
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-impact"/></svg></span><p><strong>Impact —</strong> students and faculty can scan major CTL information without parsing a dense wall of content.</p></div>
+        </div>
+
+        <div class="case-sub-block">
+          <p class="case-num">02</p>
+          <h3>Modular separation: reduce cognitive load</h3>
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-goal"/></svg></span><p><strong>Goal —</strong> preserve all existing content while making sections feel distinct.</p></div>
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-fix"/></svg></span><p><strong>Fix —</strong> used generous spacing and modular OIT blocks so users process one category at a time.</p></div>
+          <img src="https://framerusercontent.com/images/eBtEi0kFXtqYCL6ia7k4JTts.png?width=1888&height=1288" width="1888" height="1288" alt="CTL modular content block" loading="lazy" decoding="async" />
+          <img src="https://framerusercontent.com/images/EErXRKKCRGsloprMJJwPYUw55c.png?width=4130&height=2608" width="4130" height="2608" alt="CTL layout spacing system" loading="lazy" decoding="async" />
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-impact"/></svg></span><p><strong>Impact —</strong> the page feels easier to navigate while remaining scalable for future site updates.</p></div>
+        </div>
+      </div>
+
+      <div class="case-block">
+        <p class="case-label"><span class="case-icon"><svg><use href="#i-chat"/></svg></span>subproblem</p>
+        <h2>CTL Blog</h2>
+        <p>The blog needed to make recent posts more visible, keep category browsing and search usable, and protect image visibility inside the reading experience.</p>
+        <img src="https://framerusercontent.com/images/fzIC4esZjw72rD67yGZlHAVrA.png?width=4130&height=2258" width="4130" height="2258" alt="CTL news before and after comparison" loading="lazy" decoding="async" />
+
+        <div class="case-sub-block">
+          <p class="case-num">01</p>
+          <h3>Recent posts: make freshness obvious</h3>
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-goal"/></svg></span><p><strong>Goal —</strong> help users find the newest CTL updates before older content takes over the page.</p></div>
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-fix"/></svg></span><p><strong>Fix —</strong> featured the three newest posts with larger image-led cards, then moved older posts into compact scan-friendly rows.</p></div>
+          <img src="https://framerusercontent.com/images/0hIbLFJYCzpr8CsvRFG1rn2rb4.png?width=3548&height=2608" width="3548" height="2608" alt="CTL news landing redesign" loading="lazy" decoding="async" />
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-impact"/></svg></span><p><strong>Impact —</strong> recent information becomes the default focus, reducing the need to dig through older content.</p></div>
+        </div>
+
+        <div class="case-sub-block">
+          <p class="case-num">02</p>
+          <h3>Filter and search: support multiple discovery paths</h3>
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-goal"/></svg></span><p><strong>Goal —</strong> keep topic filters and keyword search available without overwhelming the page.</p></div>
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-fix"/></svg></span><p><strong>Fix —</strong> placed category filtering and search at the top so visitors can browse by topic or jump directly to a known post.</p></div>
+          <img src="https://framerusercontent.com/images/U7MdPOt7zO5eJdVRYdCL99OQx0.png?width=3548&height=2608" width="3548" height="2608" alt="CTL news category filter design" loading="lazy" decoding="async" />
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-impact"/></svg></span><p><strong>Impact —</strong> students and faculty have two clear paths to relevant information: topic-based filtration or direct search.</p></div>
+        </div>
+
+        <div class="case-sub-block">
+          <p class="case-num">03</p>
+          <h3>Image handling: keep visuals fully visible</h3>
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-goal"/></svg></span><p><strong>Goal —</strong> avoid awkward cropping or text obstruction on thumbnails in reading pages.</p></div>
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-fix"/></svg></span><p><strong>Fix —</strong> separated image areas from text containers so metadata and titles never compete with screenshots or header images.</p></div>
+          <img src="https://framerusercontent.com/images/cv4dEST1qbVqdjiRccva0YVWQY.png?width=3548&height=2608" width="3548" height="2608" alt="CTL blog detail page" loading="lazy" decoding="async" />
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-impact"/></svg></span><p><strong>Impact —</strong> blog imagery stays legible, polished, and consistent across listing and detail pages.</p></div>
+        </div>
+      </div>
+
+      <div class="case-block">
+        <p class="case-label"><span class="case-icon"><svg><use href="#i-impact"/></svg></span>outcomes</p>
+        <h2>Clearer pages, easier updates</h2>
+        <p>The redesigned CTL layouts make key announcements, recent posts, and major sections easier to scan while aligning with Georgia Tech's broader OIT design language and reducing maintenance overhead.</p>
+      </div>
+
+      <div class="case-block">
+        <p class="case-label"><span class="case-icon"><svg><use href="#i-outcome"/></svg></span>takeaways</p>
+        <h2>What this redesign reinforced</h2>
+        <p>Good information architecture is visible: hierarchy, spacing, and implementation constraints all shape whether users can understand a page quickly.</p>
+        <div class="case-grid">
+          <div class="case-mini"><span class="case-icon"><svg><use href="#i-goal"/></svg></span><h4>Hierarchy comes first</h4><p>The most important content needs the strongest visual path.</p></div>
+          <div class="case-mini"><span class="case-icon"><svg><use href="#i-layers"/></svg></span><h4>Systems scale the work</h4><p>Design systems make repeated site updates faster and more consistent.</p></div>
+          <div class="case-mini"><span class="case-icon"><svg><use href="#i-fix"/></svg></span><h4>Constraints shape outcomes</h4><p>Drupal and WordPress limits made simple, buildable patterns more valuable.</p></div>
+        </div>
+      </div>
+
+      <button class="case-next" data-open="spitfire">
+        <img src="spitfire-thumbnail.jpg" alt="" loading="lazy" />
+        <span class="case-next-body">
+          <span class="case-next-kicker">explore more work</span>
+          <span class="case-next-title"><span class="tilde">~ </span>spitfire<span class="tilde"> ~</span></span>
+          <span class="case-next-desc">A bootcamp product built around fast collaboration and focused delivery.</span>
+        </span>
+        <span class="case-next-arrow" aria-hidden="true">→</span>
+      </button>
+      <p class="case-chat">let's chat! <a href="https://www.linkedin.com/in/joshua-lin-949202294/" target="_blank" rel="noopener">reach out on LinkedIn ⇗</a></p>
+    </article>
+
+    <!-- ============ SPITFIRE ============ -->
+    <article class="case" id="case-spitfire" data-case-name="Spitfire">
+      <div class="case-meta">
+        <span class="pill">christy long + joshua lin</span>
+        <span class="pill">product designer</span>
+        <span class="pill">bootcamp</span>
+      </div>
+      <h1><span class="tilde">~ </span>s<span class="lf-b">p</span>itfir<span class="lf-b">e</span><span class="tilde"> ~</span></h1>
+      <p class="case-sub">[an app for hot takes]</p>
+      <p class="case-intro">A social concept designed around hot takes, friend-based trust, and playful interaction — helping people share what they think to explore differing opinions.</p>
+      <img src="https://framerusercontent.com/images/t5y3yp6t20SbL5r73wVT8oR8Ef4.jpg?width=2614&height=1802" width="2614" height="1802" alt="Spitfire hero" loading="lazy" decoding="async" />
+
+      <div class="case-block">
+        <p class="case-label"><span class="case-icon"><svg><use href="#i-eye"/></svg></span>overview</p>
+        <h2>A safer stage for strong opinions</h2>
+        <p>The core tension: people want to express bold takes, but mainstream feeds make disagreement feel public, permanent, and hostile. Spitfire reframes opinion-sharing as playful conversation built on trust.</p>
+        <div class="case-grid">
+          <div class="case-mini"><span class="case-icon"><svg><use href="#i-problem"/></svg></span><h4>Problem</h4><p>Echo chambers reinforce bias, while toxic comment culture makes users afraid to post strong opinions.</p></div>
+          <div class="case-mini"><span class="case-icon"><svg><use href="#i-question"/></svg></span><h4>Question</h4><p>How might we build empathy and self-expression in a low-stakes, engaging, and fun way?</p></div>
+          <div class="case-mini"><span class="case-icon"><svg><use href="#i-approach"/></svg></span><h4>Approach</h4><p>Start with trusted friends, then extend that empathy outward to strangers and their perspectives.</p></div>
+        </div>
+      </div>
+
+      <div class="case-block">
+        <p class="case-label"><span class="case-icon"><svg><use href="#i-users"/></svg></span>research</p>
+        <h2>Insights that shaped the product</h2>
+        <p>Survey and interview responses pointed to the same pattern: people are open with friends, hesitant in public, and interested in lightweight ways to stay connected.</p>
+        <div class="case-grid">
+          <div class="case-mini"><span class="case-icon"><svg><use href="#i-users"/></svg></span><h4>48 participants</h4><p>Survey responses helped identify where people felt safe sharing opinions.</p></div>
+          <div class="case-mini"><span class="case-icon"><svg><use href="#i-chat"/></svg></span><h4>7 interviews</h4><p>Moderator conversations clarified why public social posting feels risky.</p></div>
+          <div class="case-mini"><span class="case-icon"><svg><use href="#i-heart"/></svg></span><h4>Friend trust</h4><p>Users were willing to discuss beliefs with friends when respect already existed.</p></div>
+          <div class="case-mini"><span class="case-icon"><svg><use href="#i-shield"/></svg></span><h4>Public hesitation</h4><p>Strong opinions felt stressful on mainstream platforms because strangers escalate quickly.</p></div>
+          <div class="case-mini"><span class="case-icon"><svg><use href="#i-clock"/></svg></span><h4>Real-time connection</h4><p>People liked lightweight updates from close friends they do not talk to every day.</p></div>
+        </div>
+      </div>
+
+      <div class="case-block">
+        <p class="case-label"><span class="case-icon"><svg><use href="#i-flow"/></svg></span>iteration</p>
+        <h2>From research goals to flows</h2>
+        <p>We translated the insights into a flow that moves from onboarding and identity creation into friend conversations, daily prompts, community discovery, and profile expression.</p>
+        <div class="case-point"><span class="case-icon"><svg><use href="#i-flow"/></svg></span><p><strong>User flow —</strong> mapped signup, avatar creation, home, profile, and community interactions around empathy-building goals.</p></div>
+        <img src="https://framerusercontent.com/images/G3SO1pBLYMaHWokDjAMwKfV1A.png?width=3156&height=1566" width="3156" height="1566" alt="Spitfire user flow" loading="lazy" decoding="async" />
+        <div class="case-point"><span class="case-icon"><svg><use href="#i-layers"/></svg></span><p><strong>Lo-fi prototype —</strong> used quick structure to test whether the concept made sense before visual polish.</p></div>
+        <img src="https://framerusercontent.com/images/o8qUXIOuyvBsECJn2JkWb7CLdK4.png?width=1276&height=624" width="1276" height="624" alt="Lo-fi prototype" loading="lazy" decoding="async" />
+        <img src="https://framerusercontent.com/images/B1cQHbsg5vVUgLf6AJsZUGmads.png?width=1350&height=726" width="1350" height="726" alt="Mid-fi prototype" loading="lazy" decoding="async" />
+      </div>
+
+      <div class="case-block">
+        <p class="case-label"><span class="case-icon"><svg><use href="#i-layers"/></svg></span>final design</p>
+        <h2>A playful product system for perspective-taking</h2>
+        <p>The final app uses soft curves, bold graphics, familiar social mechanics, and clear spaces for friends and discovery — balancing fun with emotional safety.</p>
+
+        <div class="case-sub-block">
+          <p class="case-num">01</p>
+          <h3>Splash and signup: establish a bold, playful identity</h3>
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-goal"/></svg></span><p><strong>Goal —</strong> make the product feel approachable before asking people to share strong opinions.</p></div>
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-choice"/></svg></span><p><strong>Choice —</strong> used soft curves, bold graphics, and a clear onboarding path to create a lighter emotional tone.</p></div>
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-outcome"/></svg></span><p><strong>Outcome —</strong> the first impression frames debate as playful conversation, not conflict.</p></div>
+          <img src="https://framerusercontent.com/images/YESclEWdR9yEs1ni4r1ukxIoTM.jpg?width=1800&height=900" width="1800" height="900" alt="Spitfire splash and signup" loading="lazy" decoding="async" />
+        </div>
+
+        <div class="case-sub-block">
+          <p class="case-num">02</p>
+          <h3>Avatar creation: make identity expressive, not exposing</h3>
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-goal"/></svg></span><p><strong>Goal —</strong> let users personalize themselves while keeping the experience lighthearted.</p></div>
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-choice"/></svg></span><p><strong>Choice —</strong> added avatar creation as a playful extension of self-expression.</p></div>
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-outcome"/></svg></span><p><strong>Outcome —</strong> users can show personality without relying only on real-world identity cues.</p></div>
+          <img src="https://framerusercontent.com/images/rSwm7e1oKe7iWeb8abvTnctI0vY.jpg?width=1800&height=900" width="1800" height="900" alt="Avatar creation" loading="lazy" decoding="async" />
+        </div>
+
+        <div class="case-sub-block">
+          <p class="case-num">03</p>
+          <h3>Home feed: borrow familiar scroll behavior for hot takes</h3>
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-goal"/></svg></span><p><strong>Goal —</strong> make the core interaction instantly understandable and fun.</p></div>
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-choice"/></svg></span><p><strong>Choice —</strong> used a Reel/TikTok-style scroll for friend posts, reactions, comments, and daily prompts.</p></div>
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-outcome"/></svg></span><p><strong>Outcome —</strong> the interface lowers learning friction and encourages recurring lightweight engagement.</p></div>
+          <img src="https://framerusercontent.com/images/X5gEikv1BTTnl3zvpWfYhyq5m7I.jpg?width=1800&height=900" width="1800" height="900" alt="Home feed" loading="lazy" decoding="async" />
+        </div>
+
+        <div class="case-sub-block">
+          <p class="case-num">04</p>
+          <h3>Friends and discovery: bridge comfort with perspective</h3>
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-goal"/></svg></span><p><strong>Goal —</strong> support trusted conversations while still exposing users to different opinions.</p></div>
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-choice"/></svg></span><p><strong>Choice —</strong> separated friend/group conversations from discovery, where other viewpoints can surface by topic.</p></div>
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-outcome"/></svg></span><p><strong>Outcome —</strong> Spitfire creates a path from familiar empathy to broader perspective-taking.</p></div>
+          <img src="https://framerusercontent.com/images/ulySAUlDw4NAnNTHSXbvp5bDonA.jpg?width=1800&height=900" width="1800" height="900" alt="Friends page" loading="lazy" decoding="async" />
+          <img src="https://framerusercontent.com/images/UcgxoqwVbRU3N1QufRwWe33YSg.jpg?width=1800&height=900" width="1800" height="900" alt="Discovery page" loading="lazy" decoding="async" />
+        </div>
+
+        <div class="case-sub-block">
+          <p class="case-num">05</p>
+          <h3>Profile: let takes become a personal archive</h3>
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-goal"/></svg></span><p><strong>Goal —</strong> give users a place to own, pin, and revisit what they have shared.</p></div>
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-choice"/></svg></span><p><strong>Choice —</strong> designed a profile for viewing and pinning favorite takes, visible when others explore a user.</p></div>
+          <div class="case-point"><span class="case-icon"><svg><use href="#i-outcome"/></svg></span><p><strong>Outcome —</strong> opinions become part of a lightweight identity system without overwhelming the main feed.</p></div>
+          <img src="https://framerusercontent.com/images/oX6TQaV4ZeABAJqrct590hr2Hrw.jpg?width=1800&height=900" width="1800" height="900" alt="Profile page" loading="lazy" decoding="async" />
+        </div>
+      </div>
+
+      <div class="case-block">
+        <p class="case-label"><span class="case-icon"><svg><use href="#i-outcome"/></svg></span>takeaways</p>
+        <h2>What Spitfire taught me</h2>
+        <p>This project showed how research, prototyping, and feedback can turn a broad social problem into a focused product story.</p>
+        <div class="case-grid">
+          <div class="case-mini"><span class="case-icon"><svg><use href="#i-layers"/></svg></span><h4>Prototype earlier</h4><p>Mid-fi and hi-fi prototypes helped test interaction assumptions before the final visual system.</p></div>
+          <div class="case-mini"><span class="case-icon"><svg><use href="#i-chat"/></svg></span><h4>Interview deeply</h4><p>Interviews gave the team language for the emotional risk behind posting opinions.</p></div>
+          <div class="case-mini"><span class="case-icon"><svg><use href="#i-eye"/></svg></span><h4>Test blind spots</h4><p>Feedback revealed which interactions felt intuitive only to the design team.</p></div>
+        </div>
+      </div>
+
+      <button class="case-next" data-open="pmt">
+        <img src="pmt-thumbnail.png" alt="" loading="lazy" />
+        <span class="case-next-body">
+          <span class="case-next-kicker">explore more work</span>
+          <span class="case-next-title"><span class="tilde">~ </span>product maintenance team<span class="tilde"> ~</span></span>
+          <span class="case-next-desc">High-impact maintenance fixes that help nonprofit admins move with confidence.</span>
+        </span>
+        <span class="case-next-arrow" aria-hidden="true">→</span>
+      </button>
+      <p class="case-chat">let's chat! <a href="https://www.linkedin.com/in/joshua-lin-949202294/" target="_blank" rel="noopener">reach out on LinkedIn ⇗</a></p>
+    </article>
+
+    <!-- ============ PLAY PLACEHOLDERS ============
+         Minimal by design — just an image slot and a description
+         slot to fill in, no case-next chain. Swap the .case-slot
+         blocks for real content whenever it's ready. -->
+    <article class="case" id="case-sandbox" data-case-name="Sandbox">
+      <div class="case-meta">
+        <span class="pill">sandbox</span>
+        <span class="pill">publication</span>
+      </div>
+      <h1><span class="tilde">~ </span>sandbo<span class="lf-b">x</span><span class="tilde"> ~</span></h1>
+      <p class="case-sub">[playful layouts, built for a student publication]</p>
+      <div class="case-slot case-slot-image">[Add a cover image here]</div>
+      <div class="case-slot">[Add your project description here — what is this, what did you make, what was the process?]</div>
+      <button class="case-next" data-open="genart">
+        <span class="case-next-body">
+          <span class="case-next-kicker">explore more work</span>
+          <span class="case-next-title"><span class="tilde">~ </span>generative art<span class="tilde"> ~</span></span>
+        </span>
+        <span class="case-next-arrow" aria-hidden="true">→</span>
+      </button>
+    </article>
+
+    <article class="case" id="case-genart" data-case-name="Generative Art">
+      <div class="case-meta">
+        <span class="pill">generative art</span>
+        <span class="pill">creative coding</span>
+      </div>
+      <h1><span class="tilde">~ </span>generativ<span class="lf-b">e</span> ar<span class="lf-b">t</span><span class="tilde"> ~</span></h1>
+      <p class="case-sub">[TODO: title + description]</p>
+      <div class="case-slot case-slot-image">[Add a cover image here]</div>
+      <div class="case-slot">[Add your project description here — what is this, what did you make, what was the process?]</div>
+      <button class="case-next" data-open="aivideo">
+        <span class="case-next-body">
+          <span class="case-next-kicker">explore more work</span>
+          <span class="case-next-title"><span class="tilde">~ </span>ai video<span class="tilde"> ~</span></span>
+        </span>
+        <span class="case-next-arrow" aria-hidden="true">→</span>
+      </button>
+    </article>
+
+    <article class="case" id="case-aivideo" data-case-name="AI Video">
+      <div class="case-meta">
+        <span class="pill">ai video</span>
+        <span class="pill">motion</span>
+      </div>
+      <h1><span class="tilde">~ </span>ai vide<span class="lf-b">o</span><span class="tilde"> ~</span></h1>
+      <p class="case-sub">[TODO: title + description]</p>
+      <div class="case-slot case-slot-image">[Add a cover image here]</div>
+      <div class="case-slot">[Add your project description here — what is this, what did you make, what was the process?]</div>
+      <button class="case-next" data-open="sandbox">
+        <span class="case-next-body">
+          <span class="case-next-kicker">explore more work</span>
+          <span class="case-next-title"><span class="tilde">~ </span>sandbox<span class="tilde"> ~</span></span>
+        </span>
+        <span class="case-next-arrow" aria-hidden="true">→</span>
+      </button>
+    </article>
+
+    </div>
+  </div>
+  </div>
+</div>
+<button class="case-close" id="case-close" aria-label="Close case study">×</button>
+
+<!-- ======================= SPLASH ======================= -->
+<div class="splash" id="splash" aria-hidden="true">
+  <div class="splash-name"><span id="type-name"></span><span class="caret" id="caret1"></span></div>
+  <div class="splash-sub"><span id="type-sub"></span><span class="caret" id="caret2" style="display:none"></span></div>
+</div>
+
+
+<script>
+(function () {
+  "use strict";
+
+  /* ------- Design scale (pure number vs the 1512×982 frame) ------- */
+  function fitScale() {
+    var s = window.innerWidth <= 768
+      ? 1
+      : Math.min(window.innerWidth / 1512, window.innerHeight / 982, 1.15);
+    document.documentElement.style.setProperty("--s", s);
+    if (window.recomputeNavZones) window.recomputeNavZones(); /* always
+      AFTER the new scale lands, never racing it — was a real gap on
+      narrower widths where the scale change is larger */
+  }
+  fitScale();
+  var scaleTick = false;
+  function queueFitScale() {
+    if (scaleTick) return;
+    scaleTick = true;
+    requestAnimationFrame(function () { scaleTick = false; fitScale(); });
+  }
+  window.addEventListener("resize", queueFitScale);
+  window.addEventListener("orientationchange", queueFitScale);
+  /* zones no longer need their own resize listener — fitScale()
+     now triggers the recompute itself, correctly sequenced */
+
+  /* ------- Linear carousel, symmetric edge peeks, no wrap ------- */
+  var units = Array.prototype.slice.call(document.querySelectorAll("#stage .unit"));
+  var dots = Array.prototype.slice.call(document.querySelectorAll("#work-dots .dot"));
+  var srPrev = document.getElementById("sr-prev");
+  var srNext = document.getElementById("sr-next");
+  var live = document.getElementById("live");
+  var names = ["Product Maintenance Team", "GT OIT Redesigns", "Spitfire"];
+  var N = units.length;
+  var index = 0;
+  var schedulePositionZones = function () {}; /* reassigned by the cursor block (desktop) */
+  window.recomputeNavZones = function () { schedulePositionZones(); };
+
+  function stateFor(i) {
+    if (i === index) return "is-focused";
+    if (i === index - 1) return "is-peek-left";
+    if (i === index + 1) return "is-peek-right";
+    return i < index ? "is-hidden-left" : "is-hidden-right";
+  }
+
+  function render() {
+    units.forEach(function (unit, i) {
+      var next = stateFor(i);
+      unit.classList.remove("is-focused", "is-peek-left", "is-peek-right",
+                            "is-hidden-left", "is-hidden-right");
+      unit.classList.add(next);
+      var hidden = next === "is-hidden-left" || next === "is-hidden-right";
+      unit.setAttribute("aria-hidden", hidden ? "true" : "false");
+      unit.querySelector(".card").tabIndex = next === "is-focused" ? 0 : -1;
+    });
+    dots.forEach(function (d) {
+      d.classList.toggle("is-active", Number(d.dataset.index) === index);
+    });
+    srPrev.style.display = index === 0 ? "none" : "";
+    srNext.style.display = index === N - 1 ? "none" : "";
+    cursorClearLabel(); /* whatever was under the pointer just changed */
+    schedulePositionZones();
+    live.textContent = "Project " + (index + 1) + " of " + N + ": " + names[index];
+  }
+
+  function next() { if (index < N - 1) { index++; render(); } }
+  function prev() { if (index > 0) { index--; render(); } }
+  function goTo(i) { if (i !== index) { index = i; render(); } }
+
+  dots.forEach(function (d) {
+    d.addEventListener("click", function () { goTo(Number(d.dataset.index)); });
+  });
+  /* Peek units steer the carousel; the focused card opens its case study. */
+  units.forEach(function (unit) {
+    unit.addEventListener("click", function (e) {
+      if (unit.classList.contains("is-peek-right")) { e.preventDefault(); next(); }
+      else if (unit.classList.contains("is-peek-left")) { e.preventDefault(); prev(); }
+      else if (unit.classList.contains("is-focused")) {
+        var card = e.target.closest(".card");
+        if (card) {
+          e.preventDefault();
+          lastFocusedCard = card;
+          openCase(card.dataset.case, false);
+        }
+      }
+    });
+  });
+  units.forEach(function (unit) {
+    unit.querySelector(".card").addEventListener("keydown", function (e) {
+      if ((e.key === "Enter" || e.key === " ") && unit.classList.contains("is-focused")) {
+        e.preventDefault();
+        lastFocusedCard = this;
+        openCase(this.dataset.case, false);
+      }
+    });
+  });
+  srPrev.addEventListener("click", prev);
+  srNext.addEventListener("click", next);
+
+  document.addEventListener("keydown", function (e) {
+    if (e.target.matches("input, textarea")) return;
+    if (document.body.classList.contains("case-open")) return;
+    var inPlay = document.body.dataset.mode === "play";
+    if (e.key === "ArrowRight") { if (inPlay) { if (window.playNext) window.playNext(); } else next(); }
+    if (e.key === "ArrowLeft")  { if (inPlay) { if (window.playPrev) window.playPrev(); } else prev(); }
+  });
+
+  var touchX = null, touchY = null;
+  var stageEl = document.getElementById("stage");
+  stageEl.addEventListener("touchstart", function (e) {
+    touchX = e.changedTouches[0].clientX;
+    touchY = e.changedTouches[0].clientY;
+  }, { passive: true });
+  stageEl.addEventListener("touchend", function (e) {
+    if (touchX === null) return;
+    if (document.body.classList.contains("case-open")) { touchX = touchY = null; return; }
+    if (document.body.dataset.mode === "play") { touchX = touchY = null; return; }
+    var dx = e.changedTouches[0].clientX - touchX;
+    var dy = e.changedTouches[0].clientY - touchY;
+    /* only treat it as a swipe if it's clearly more horizontal than
+       vertical — otherwise a diagonal scroll can misfire navigation */
+    if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+      if (dx < 0) next(); else prev();
+    }
+    touchX = touchY = null;
+  }, { passive: true });
+
+  /* ------- Custom circular cursor (fine pointers only) ------- */
+  var cursorEl = document.getElementById("cursor");
+  var cursorLabel = document.getElementById("cursor-label");
+  var labelOn = false;
+
+  function cursorClearLabel() {
+    labelOn = false;
+    cursorEl.classList.remove("is-label");
+  }
+
+  if (window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+    document.body.classList.add("custom-cursor");
+    var zonePrev = document.getElementById("zone-prev");
+    var zoneNext = document.getElementById("zone-next");
+    var zoneRects = { prev: null, next: null };
+    var zoneCardClip = { prev: null, next: null }; /* which peek card each zone currently sits over */
+    var zoneTimer = null;
+
+    function positionZones() {
+      var s = parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue("--s")
+      ) || 1;
+      var pad = 70 * s; /* the "area around" each project */
+      var vw = window.innerWidth, vh = window.innerHeight;
+      var stageSel = document.body.dataset.mode === "play" ? "#play-stage" : "#stage";
+      [["prev", "is-peek-left", zonePrev],
+       ["next", "is-peek-right", zoneNext]].forEach(function (cfg) {
+        var key = cfg[0], cls = cfg[1], el = cfg[2];
+        var unit = document.querySelector(stageSel + " .unit." + cls);
+        if (!unit) {
+          el.classList.remove("is-on");
+          zoneRects[key] = null;
+          zoneCardClip[key] = null;
+          return;
+        }
+        zoneCardClip[key] = unit.querySelector(".card-clip");
+        var r = unit.getBoundingClientRect();
+        var rect = {
+          left: Math.max(0, r.left - pad),
+          top: Math.max(0, r.top - pad),
+          right: Math.min(vw, r.right + pad),
+          bottom: Math.min(vh, r.bottom + pad)
+        };
+        zoneRects[key] = rect;
+        el.style.left = rect.left + "px";
+        el.style.top = rect.top + "px";
+        el.style.width = (rect.right - rect.left) + "px";
+        el.style.height = (rect.bottom - rect.top) + "px";
+        el.classList.add("is-on");
+      });
+    }
+    schedulePositionZones = function () {
+      positionZones(); /* immediate approximate update — no stale window
+                           where hover/shine/label could target the wrong,
+                           sometimes now-hidden, card */
+      clearTimeout(zoneTimer);
+      zoneTimer = setTimeout(positionZones, 380); /* precise re-measure once settled */
+    };
+    /* zonePrev/zoneNext are pointer-events:none (see CSS) — clicks fall
+       through to the real card. The shine is triggered directly via
+       mouseenter/mouseleave on each card (wired further down), fully
+       independent of this positional system, which now only drives
+       the cursor's "next/previous project" label below. */
+    positionZones();
+
+    var cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+    var tx = cx, ty = cy;
+    var cursorRaf = null;
+    document.addEventListener("mousemove", function (e) {
+      tx = e.clientX; ty = e.clientY;
+      if (cursorRaf === null) cursorRaf = requestAnimationFrame(loop);
+    });
+
+    function inside(x, y, r) {
+      return r && x >= r.left && x <= r.right && y >= r.top && y <= r.bottom;
+    }
+    /* Positional label sync: the label exists exactly while the pointer
+       is inside a zone rect — it can never go stale across transitions. */
+    function syncLabel() {
+      if (document.body.classList.contains("case-open")) {
+        if (labelOn) cursorClearLabel();
+        return;
+      }
+      var which = null;
+      if (inside(tx, ty, zoneRects.next)) { which = "next project"; }
+      else if (inside(tx, ty, zoneRects.prev)) { which = "previous project"; }
+      if (which) {
+        if (cursorLabel.textContent !== which) cursorLabel.textContent = which;
+        if (!labelOn) {
+          labelOn = true;
+          cursorEl.classList.add("is-label");
+        }
+        cursorEl.classList.remove("is-hover"); /* never stack with the ring */
+      } else if (labelOn) {
+        cursorClearLabel();
+      }
+    }
+
+    function loop() {
+      cx += (tx - cx) * 0.22;
+      cy += (ty - cy) * 0.22;
+      cursorEl.style.transform = "translate(" + cx + "px," + cy + "px)";
+      syncLabel();
+      /* Stop once the ring has caught up — no JS runs at rest.
+         Any mousemove above restarts it. */
+      if (Math.abs(tx - cx) > 0.4 || Math.abs(ty - cy) > 0.4) {
+        cursorRaf = requestAnimationFrame(loop);
+      } else {
+        cursorRaf = null;
+      }
+    }
+    loop();
+
+    /* Interactive elements → ring grows (unless labeled) */
+    document.addEventListener("mouseover", function (e) {
+      if (labelOn) return;
+      cursorEl.classList.toggle("is-hover", !!e.target.closest("a, button, .card"));
+    });
+  }
+
+  render();
+
+  /* ------- Case study overlays ------- */
+  var caseOverlay = document.getElementById("case-overlay");
+  var caseCloseBtn = document.getElementById("case-close");
+  var casePanel = document.getElementById("case-scroll");
+  var caseProgressFill = document.querySelector(".case-progress span");
+  var caseEls = {
+    pmt: document.getElementById("case-pmt"),
+    gtoit: document.getElementById("case-gtoit"),
+    spitfire: document.getElementById("case-spitfire"),
+    sandbox: document.getElementById("case-sandbox"),
+    genart: document.getElementById("case-genart"),
+    aivideo: document.getElementById("case-aivideo")
+  };
+  Object.defineProperty(window, "lastFocusedCard", {
+    get: function () { return lastFocusedCard; },
+    set: function (v) { lastFocusedCard = v; }
+  });
+  var lastFocusedCard = null;
+  window.openCase = openCase;
+
+  function openCase(key, silent) {
+    var article = caseEls[key];
+    if (!article) return;
+    Object.keys(caseEls).forEach(function (k) {
+      caseEls[k].classList.toggle("is-active", k === key);
+    });
+    casePanel.scrollTop = 0;
+    if (caseProgressFill) caseProgressFill.style.transform = "scaleX(0)";
+    caseOverlay.classList.add("is-open");
+    document.body.classList.add("case-open");
+    if (!silent) { try { history.pushState(null, "", "#" + key); } catch (err) { location.hash = key; } }
+    caseCloseBtn.focus();
+  }
+  function closeCase(silent) {
+    if (!caseOverlay.classList.contains("is-open")) return;
+    caseOverlay.classList.remove("is-open");
+    document.body.classList.remove("case-open");
+    if (!silent) { try { history.pushState(null, "", location.pathname + location.search); } catch (err) { location.hash = ""; } }
+    if (lastFocusedCard) lastFocusedCard.focus();
+  }
+  caseCloseBtn.addEventListener("click", function () { closeCase(false); });
+  var progTick = false;
+  casePanel.addEventListener("scroll", function () {
+    if (progTick) return;
+    progTick = true;
+    requestAnimationFrame(function () {
+      progTick = false;
+      var max = casePanel.scrollHeight - casePanel.clientHeight;
+      caseProgressFill.style.transform =
+        "scaleX(" + (max > 0 ? Math.min(1, casePanel.scrollTop / max) : 0) + ")";
+    });
+  }, { passive: true });
+  caseOverlay.addEventListener("click", function (e) {
+    if (e.target === caseOverlay) closeCase(false);
+  });
+  Array.prototype.forEach.call(document.querySelectorAll("[data-open]"), function (btn) {
+    btn.addEventListener("click", function () {
+      casePanel.scrollTop = 0;
+      openCase(btn.dataset.open, false);
+    });
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && caseOverlay.classList.contains("is-open")) closeCase(false);
+  });
+  window.addEventListener("popstate", function () {
+    var k = location.hash.slice(1);
+    if (k && caseEls[k]) openCase(k, true);
+    else closeCase(true);
+  });
+  (function () { /* deep link: /#pmt, /#gtoit, /#spitfire */
+    var k = location.hash.slice(1);
+    if (k && caseEls[k]) openCase(k, true);
+  })();
+
+  /* ------- Info popover ------- */
+  var infoBtn = document.getElementById("info-btn");
+  var infoPop = document.getElementById("info-pop");
+  infoBtn.addEventListener("click", function (e) {
+    e.stopPropagation();
+    var open = infoPop.classList.toggle("is-open");
+    infoBtn.setAttribute("aria-expanded", String(open));
+  });
+  document.addEventListener("click", function (e) {
+    if (infoPop.classList.contains("is-open") &&
+        !infoPop.contains(e.target) && e.target !== infoBtn) {
+      infoPop.classList.remove("is-open");
+      infoBtn.setAttribute("aria-expanded", "false");
+    }
+  });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape" && infoPop.classList.contains("is-open")) {
+      infoPop.classList.remove("is-open");
+      infoBtn.setAttribute("aria-expanded", "false");
+      infoBtn.focus();
+    }
+  });
+
+  /* ------- Mode toggle: a real switch ------- */
+  var toggle = document.getElementById("mode-toggle");
+  var flashEl = document.getElementById("mode-flash");
+  var flashReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var flashTimer = null;
+  toggle.addEventListener("click", function () {
+    var toPlay = toggle.getAttribute("aria-checked") !== "true";
+    toggle.setAttribute("aria-checked", String(toPlay));
+
+    function applyMode() {
+      document.body.dataset.mode = toPlay ? "play" : "work";
+      if (window.recomputeNavZones) window.recomputeNavZones();
+    }
+
+    if (flashReduced) { applyMode(); return; }
+
+    flashEl.style.background = toPlay
+      ? "rgba(79, 150, 190, 0.45)"   /* soft wash toward play's blue */
+      : "rgba(10, 10, 10, 0.45)";   /* soft wash toward work's near-black */
+    clearTimeout(flashTimer);
+    flashEl.classList.remove("is-active");
+    void flashEl.offsetWidth; /* restart reliably even mid-flash */
+    flashEl.classList.add("is-active");
+    flashTimer = setTimeout(applyMode, 168); /* fires at the flash's peak (40% of 420ms) */
+  });
+
+  /* ------- Splash ------- */
+  var splash = document.getElementById("splash");
+  var reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var seen = false;
+  try { seen = sessionStorage.getItem("splashShown") === "1"; } catch (e) {}
+
+  function markSeen() {
+    try { sessionStorage.setItem("splashShown", "1"); } catch (e) {}
+  }
+
+  var deepLinked = location.hash.length > 1 &&
+    document.getElementById("case-" + location.hash.slice(1));
+  if (seen || reduceMotion || deepLinked) {
+    splash.remove();
+    document.body.classList.add("no-splash", "ready");
+    markSeen();
+    return;
+  }
+
+  /* Reveal the page right away, in parallel with the typing — it'll be
+     fully visible well before the splash finishes, so the blur behind
+     the splash shows the real, settled page rather than just the
+     floor texture underneath. */
+  document.body.classList.add("ready");
+
+  var nameChars = [
+    { c: "J" }, { c: "o" }, { c: "s", cls: "lf-bi" }, { c: "h" }, { c: "\u00A0" },
+    { c: "L" }, { c: "i" }, { c: "n", cls: "lf-b" }
+  ];
+  var subText = "half designer, half developer \u2014 let me show you around.";
+  var typeName = document.getElementById("type-name");
+  var typeSub = document.getElementById("type-sub");
+  var caret1 = document.getElementById("caret1");
+  var caret2 = document.getElementById("caret2");
+  var timers = [];
+  var finished = false;
+
+  function schedule(fn, ms) { timers.push(setTimeout(fn, ms)); }
+
+  var SCRAMBLE_POOL = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+  function scrambleChar() {
+    return SCRAMBLE_POOL[(Math.random() * SCRAMBLE_POOL.length) | 0];
+  }
+
+  var t = 0;
+  nameChars.forEach(function (ch) {
+    if (ch.c === "\u00A0") {
+      /* spaces just appear — nothing to scramble */
+      schedule(function () { typeName.appendChild(document.createTextNode(ch.c)); }, t);
+      t += 75;
+      return;
+    }
+    var slot = document.createElement("span");
+    if (ch.cls) slot.className = ch.cls;
+    /* a couple of quick random flickers before settling on the real
+       letter — all inside this character's existing time budget, so
+       the overall pacing doesn't change, just what fills it */
+    schedule(function () { slot.textContent = scrambleChar(); typeName.appendChild(slot); }, t);
+    schedule(function () { slot.textContent = scrambleChar(); }, t + 18);
+    schedule(function () { slot.textContent = scrambleChar(); }, t + 36);
+    schedule(function () { slot.textContent = ch.c; }, t + 54);
+    t += 75;
+  });
+  t += 230;
+  schedule(function () { caret1.style.display = "none"; caret2.style.display = ""; }, t);
+  subText.split("").forEach(function (c) {
+    schedule(function () { typeSub.appendChild(document.createTextNode(c)); }, t);
+    t += 28;
+  });
+  schedule(finishSplash, t + 420);
+
+  function finishSplash(skipped) {
+    if (finished) return;
+    finished = true;
+    timers.forEach(clearTimeout);
+    markSeen();
+
+    if (skipped) {
+      typeName.innerHTML = 'Jo<span class="lf-bi">s</span>h Li<span class="lf-b">n</span>';
+      typeSub.textContent = subText;
+    }
+    caret1.style.display = "none";
+    caret2.style.display = "none";
+
+    /* Simple slide-up + fade — no shared-element shrink into the
+       header this time, just the splash content lifting away. */
+    splash.querySelector(".splash-name").style.transform = "translateY(-28px)";
+    splash.querySelector(".splash-sub").style.transform = "translateY(-20px)";
+
+    document.body.classList.add("ready");
+    splash.classList.add("is-leaving");
+    schedule(function () { splash.remove(); }, 520);
+  }
+
+  ["click", "keydown", "touchstart"].forEach(function (evt) {
+    splash.addEventListener(evt, function () { finishSplash(true); }, { once: true, passive: true });
+  });
+})();
+</script>
+<script>
+/* Play carousel — lean sibling of the work carousel: dots + swipe +
+   keyboard parity, no cursor-proximity zones (kept off for efficiency;
+   see notes). Scoped entirely to #play-stage / #play-dots. */
+(function () {
+  "use strict";
+  var pUnits = Array.prototype.slice.call(document.querySelectorAll("#play-stage .unit"));
+  var pDots = Array.prototype.slice.call(document.querySelectorAll("#play-dots .dot"));
+  var pPrev = document.getElementById("play-sr-prev");
+  var pNext = document.getElementById("play-sr-next");
+  var pStage = document.getElementById("play-stage");
+  var pN = pUnits.length;
+  var pIndex = 0;
+  if (!pN) return;
+
+  function stateFor(i) {
+    if (i === pIndex) return "is-focused";
+    if (i === pIndex - 1) return "is-peek-left";
+    if (i === pIndex + 1) return "is-peek-right";
+    return i < pIndex ? "is-hidden-left" : "is-hidden-right";
+  }
+  function render() {
+    pUnits.forEach(function (unit, i) {
+      var next = stateFor(i);
+      unit.classList.remove("is-focused", "is-peek-left", "is-peek-right", "is-hidden-left", "is-hidden-right");
+      unit.classList.add(next);
+      var hidden = next === "is-hidden-left" || next === "is-hidden-right";
+      unit.setAttribute("aria-hidden", hidden ? "true" : "false");
+      var card = unit.querySelector(".card");
+      if (card) card.tabIndex = next === "is-focused" ? 0 : -1;
+    });
+    pDots.forEach(function (d) { d.classList.toggle("is-active", Number(d.dataset.index) === pIndex); });
+    if (pPrev) pPrev.style.display = pIndex === 0 ? "none" : "";
+    if (pNext) pNext.style.display = pIndex === pN - 1 ? "none" : "";
+    if (window.recomputeNavZones) window.recomputeNavZones();
+  }
+  window.playNext = function () { if (pIndex < pN - 1) { pIndex++; render(); } };
+  window.playPrev = function () { if (pIndex > 0) { pIndex--; render(); } };
+
+  pDots.forEach(function (d) {
+    d.addEventListener("click", function () { pIndex = Number(d.dataset.index); render(); });
+  });
+  pUnits.forEach(function (unit) {
+    var card = unit.querySelector(".card");
+    if (!card) return;
+    card.addEventListener("click", function () {
+      if (unit.classList.contains("is-peek-right")) window.playNext();
+      else if (unit.classList.contains("is-peek-left")) window.playPrev();
+      else if (unit.classList.contains("is-focused") && window.openCase) {
+        window.lastFocusedCard = card;
+        window.openCase(card.dataset.case, false);
+      }
+    });
+    card.addEventListener("keydown", function (e) {
+      if ((e.key === "Enter" || e.key === " ") && unit.classList.contains("is-focused") && window.openCase) {
+        e.preventDefault();
+        window.lastFocusedCard = card;
+        window.openCase(card.dataset.case, false);
+      }
+    });
+  });
+  if (pPrev) pPrev.addEventListener("click", window.playPrev);
+  if (pNext) pNext.addEventListener("click", window.playNext);
+
+  var pTouchX = null, pTouchY = null;
+  if (pStage) {
+    pStage.addEventListener("touchstart", function (e) {
+      pTouchX = e.changedTouches[0].clientX;
+      pTouchY = e.changedTouches[0].clientY;
+    }, { passive: true });
+    pStage.addEventListener("touchend", function (e) {
+      if (pTouchX === null) return;
+      var dx = e.changedTouches[0].clientX - pTouchX;
+      var dy = e.changedTouches[0].clientY - pTouchY;
+      if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
+        if (dx < 0) window.playNext(); else window.playPrev();
+      }
+      pTouchX = pTouchY = null;
+    }, { passive: true });
+  }
+  render();
+})();
+</script>
+</body>
+</html>
