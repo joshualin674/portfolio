@@ -306,10 +306,10 @@ a { color: inherit; text-decoration: none; }
   display: flex; flex-direction: column;
   align-items: center; gap: 0; /* tags + connectors sit flush on the card */
   transform-origin: center center;
-  transition: transform var(--transition-card), opacity var(--transition-card),
-              left var(--transition-card), filter var(--transition-card),
-              scale var(--transition-card);
-  will-change: transform, scale, opacity, filter;
+  transition: transform var(--transition-card), translate var(--transition-card),
+              opacity var(--transition-card), left var(--transition-card),
+              filter var(--transition-card), scale var(--transition-card);
+  will-change: transform, translate, scale, opacity, filter;
 }
 .unit.is-focused {
   transform: translate(-50%, var(--ty));
@@ -424,7 +424,9 @@ a { color: inherit; text-decoration: none; }
    elements (tags, connectors, name travel with it) + fires the shine */
 @media (hover: hover) and (pointer: fine) {
   .unit.is-focused:hover {
-    transform: translate(-50%, var(--ty)) scale(1.03);
+    scale: 1.03; /* standalone, not embedded in transform — transform's
+      job is now solely translate's, set once on .is-focused; adding a
+      second translate() here would double-apply it */
   }
   .unit.is-focused:hover .card-clip::before {
     animation: shine 750ms ease;
@@ -839,6 +841,13 @@ body.no-splash .page > * { opacity: 1; transition: none; }
   :root {
     --card-w: min(84vw, 300px);
     --card-h: calc(var(--card-w) / 1.4841); /* landscape — same ratio as desktop's 558:376 */
+    /* distance from the focused card's center to a peek's center:
+       half the focused card + half the (scaled) peek + a real gap.
+       Derived from --card-w so the cards can never overlap no matter
+       the viewport — the old left:0 / left:100% anchoring collided
+       badly here because the card is ~77% of a phone's width but the
+       slots were only 50% apart. */
+    --peek-offset: calc(var(--card-w) * 0.95 + 14px);
     --radius-card: 12px;
     --fs-27: 22px;
     --fs-24: 17px;
@@ -897,11 +906,19 @@ body.no-splash .page > * { opacity: 1; transition: none; }
   .case-pad { padding-top: 76px; } /* content clears the close button */
   .case-next img { width: 96px; height: 64px; }
 
-  .unit { top: 50%; }
-  .unit.is-peek-left  { left: 0; transform: translate(-50%, var(--ty)); }
-  .unit.is-peek-right { left: 100%; transform: translate(-50%, var(--ty)); }
-  .unit.is-hidden-left  { transform: translate(-160%, var(--ty)); }
-  .unit.is-hidden-right { transform: translate(60%, var(--ty)); }
+  /* Mobile positions every slot from the SAME left:50% anchor, offset via
+     the `translate` property. Two reasons this beats transform here:
+     (a) translate applies after `scale`, so the offset isn't multiplied
+     by the peek shrink — that coupling is what made the left and right
+     overlaps differ (105px vs 75px) and read as "the middle card is
+     closer to the first one"; (b) the offset is derived from --card-w,
+     so the gap between cards is guaranteed by construction. */
+  .unit { top: 50%; transform: none; translate: -50% var(--ty); }
+  .unit.is-focused    { transform: none; translate: -50% var(--ty); }
+  .unit.is-peek-left  { left: 50%; transform: none; translate: calc(-50% - var(--peek-offset)) var(--ty); }
+  .unit.is-peek-right { left: 50%; transform: none; translate: calc(-50% + var(--peek-offset)) var(--ty); }
+  .unit.is-hidden-left  { left: 50%; transform: none; translate: calc(-50% - var(--peek-offset) * 2) var(--ty); }
+  .unit.is-hidden-right { left: 50%; transform: none; translate: calc(-50% + var(--peek-offset) * 2) var(--ty); }
 
   .dots { top: auto; bottom: 64px; }
   .footer { position: fixed; bottom: 14px; font-size: 18px; z-index: 20; }
@@ -1936,52 +1953,32 @@ body[data-mode="play"] .doodle.play-only { display: block; }
      not just position — so nothing "snaps" into place at the end.
      Reused by both carousels (play calls window.initSwipeDrag below). ------- */
   window.initSwipeDrag = function (stageEl, nextFn, prevFn, guardFn) {
-    /* Filmstrip model: every visible (and about-to-be-visible) card
-       gets the SAME positional offset every frame, so their spacing
-       never changes and they can never overlap — only the group's
-       shared offset changes. Applied directly to each card's own
-       transform (not the parent stage) so that, on release, each
-       card settles through exactly ONE transition — its own existing
-       transform/left/opacity/filter/scale rule — rather than that
-       plus a second, independent parent-level animation racing it.
-       Two simultaneous, differently-timed transitions summing
-       together is what read as a "re-animation" rather than one
-       continuous motion. */
-    var touchX = null, touchY = null, touchLocked = null, snap = null, shift = 0;
+    /* Deliberately simple, on purpose. Position is NEVER touched here —
+       it always stays exactly where its CSS class already puts it, and
+       only changes via the existing next()/prev() class-swap, exactly
+       the same mechanism that has correctly positioned every card since
+       the very first click-to-navigate version and has never once
+       overlapped anything. Only scale/opacity/blur react live to the
+       drag — real, immediate feedback that a card is growing, shrinking,
+       brightening, or dimming — without ever risking a spacing bug,
+       because nothing ever moves by hand. */
+    var touchX = null, touchY = null, touchLocked = null, snap = null;
     var peekScaleVal = parseFloat(
       getComputedStyle(document.documentElement).getPropertyValue("--peek-scale")
     ) || 0.9;
-    var REVEAL_PX = 130; /* drag distance for a full role-swap to complete */
+    var REVEAL_PX = 130; /* drag distance for a full role-swap's look to complete */
 
     function lerp(a, b, t) { return a + (b - a) * t; }
-    /* Two different kinds of motion happen here, and they need two
-       different formulas: focused <-> the activating peek are swapping
-       between DIFFERENT left-anchors (50% vs 0%/100%), so they need a
-       shared pixel offset to bridge that gap. The inactive peek and the
-       incoming hidden card stay on the SAME left-anchor as their target
-       role — only their own transform percentage changes — so they need
-       plain percentage interpolation instead. Using the pixel-offset
-       formula for those would render them on top of the peek they're
-       replacing (same anchor, same offset = same spot) instead of
-       genuinely sliding into it. */
-    function paintShift(el, sharedX, scale, opacity, blur) {
+    function paint(el, scale, opacity, blur) {
       if (!el) return;
-      el.style.transform = "translate(calc(-50% + " + sharedX + "px), var(--ty))";
-      el.style.scale = scale;
-      el.style.opacity = opacity;
-      el.style.filter = "blur(" + blur + "px)";
-    }
-    function paintPct(el, pct, scale, opacity, blur) {
-      if (!el) return;
-      el.style.transform = "translate(" + pct + "%, var(--ty))";
       el.style.scale = scale;
       el.style.opacity = opacity;
       el.style.filter = "blur(" + blur + "px)";
     }
     function clearInline(el) {
       if (!el) return;
-      el.style.transition = ""; el.style.transform = "";
-      el.style.scale = ""; el.style.opacity = ""; el.style.filter = "";
+      el.style.transition = ""; el.style.scale = "";
+      el.style.opacity = ""; el.style.filter = "";
     }
 
     stageEl.addEventListener("touchstart", function (e) {
@@ -1991,13 +1988,9 @@ body[data-mode="play"] .doodle.play-only { display: block; }
       snap = {
         focused: stageEl.querySelector(".unit.is-focused"),
         peekLeft: stageEl.querySelector(".unit.is-peek-left"),
-        peekRight: stageEl.querySelector(".unit.is-peek-right"),
-        hiddenLeft: stageEl.querySelector(".unit.is-hidden-left"),
-        hiddenRight: stageEl.querySelector(".unit.is-hidden-right")
+        peekRight: stageEl.querySelector(".unit.is-peek-right")
       };
-      shift = stageEl.getBoundingClientRect().width / 2; /* real distance
-        between adjacent slots, measured — not guessed from drag length */
-      [snap.focused, snap.peekLeft, snap.peekRight, snap.hiddenLeft, snap.hiddenRight]
+      [snap.focused, snap.peekLeft, snap.peekRight]
         .forEach(function (el) { if (el) el.style.transition = "none"; });
     }, { passive: true });
 
@@ -2015,35 +2008,30 @@ body[data-mode="play"] .doodle.play-only { display: block; }
 
       var t = Math.max(-1, Math.min(1, dx / REVEAL_PX));
       var a = Math.abs(t);
-      var sharedX = t * shift;
 
-      /* the focused card shrinks/dims/blurs as it's dragged out,
-         in either direction — it's always the one leaving */
-      paintShift(snap.focused, sharedX, lerp(1, peekScaleVal, a), lerp(1, 0.71, a), lerp(0, 1, a));
+      /* Only the two cards actually swapping roles ever get touched.
+         The inactive peek and the incoming hidden card never move
+         during the drag — their rest position is fixed (hidden's is
+         even asymmetric: -160%/60%) — so making either of them
+         partially visible there, before they've actually reached
+         their new slot, showed a card sitting somewhere it shouldn't,
+         which is exactly what reads as bad spacing or overlap. They
+         now stay fully at rest until the moment the class change
+         actually moves them. */
+
+      /* the focused card shrinks/dims as it's dragged out, either way —
+         it's always the one leaving */
+      paint(snap.focused, lerp(1, peekScaleVal, a), lerp(1, 0.71, a), lerp(0, 1, a));
 
       if (t < 0) {
+        /* revealing next: peek-right brightens/grows toward full size */
         var t2 = -t;
-        /* revealing next: peek-right (different anchor) grows into the
-           new focused card via the shared shift; peek-left (same
-           anchor as hidden-left) fades toward hidden-left's own resting
-           percentage; hidden-right (same anchor as peek-right) fades in
-           from ITS resting percentage toward peek-right's — landing
-           exactly in the slot peek-right is vacating, not on top of it */
-        if (snap.peekRight) {
-          paintShift(snap.peekRight, sharedX, lerp(peekScaleVal, 1, t2), lerp(0.71, 1, t2), lerp(1, 0, t2));
-        }
-        if (snap.peekLeft) paintPct(snap.peekLeft, lerp(-50, -160, t2), peekScaleVal, lerp(0.71, 0, t2), 1);
-        if (snap.hiddenRight) paintPct(snap.hiddenRight, lerp(60, -50, t2), peekScaleVal, lerp(0, 0.71, t2), 1);
+        if (snap.peekRight) paint(snap.peekRight, lerp(peekScaleVal, 1, t2), lerp(0.71, 1, t2), lerp(1, 0, t2));
       } else if (t > 0) {
         /* symmetric for revealing previous */
-        if (snap.peekLeft) {
-          paintShift(snap.peekLeft, sharedX, lerp(peekScaleVal, 1, t), lerp(0.71, 1, t), lerp(1, 0, t));
-        }
-        if (snap.peekRight) paintPct(snap.peekRight, lerp(-50, 60, t), peekScaleVal, lerp(0.71, 0, t), 1);
-        if (snap.hiddenLeft) paintPct(snap.hiddenLeft, lerp(-160, -50, t), peekScaleVal, lerp(0, 0.71, t), 1);
+        if (snap.peekLeft) paint(snap.peekLeft, lerp(peekScaleVal, 1, t), lerp(0.71, 1, t), lerp(1, 0, t));
       }
     }, { passive: false });
-
 
     stageEl.addEventListener("touchend", function (e) {
       if (touchX === null) return;
@@ -2051,7 +2039,7 @@ body[data-mode="play"] .doodle.play-only { display: block; }
       var dy = e.changedTouches[0].clientY - touchY;
       var wasLocked = touchLocked;
       var els = snap
-        ? [snap.focused, snap.peekLeft, snap.peekRight, snap.hiddenLeft, snap.hiddenRight]
+        ? [snap.focused, snap.peekLeft, snap.peekRight]
         : [];
       touchX = touchY = null; touchLocked = null;
 
@@ -2060,10 +2048,9 @@ body[data-mode="play"] .doodle.play-only { display: block; }
         if (dx < 0) nextFn(); else prevFn();
       }
       /* re-enabling each card's own transition and clearing its inline
-         overrides in the same tick as the class change lets its single
-         transition (transform + left + scale + opacity + filter, all
-         one rule, one duration, one easing) carry the entire remaining
-         motion — no second, independent animation running alongside it */
+         appearance overrides in the same tick as the (possible) class
+         change lets the existing, always-correct position transition
+         run untouched, while scale/opacity/filter settle alongside it */
       els.forEach(clearInline);
     }, { passive: true });
   };
@@ -2346,7 +2333,7 @@ body[data-mode="play"] .doodle.play-only { display: block; }
     { c: "J" }, { c: "o" }, { c: "s", cls: "lf-bi" }, { c: "h" }, { c: "\u00A0" },
     { c: "L" }, { c: "i" }, { c: "n", cls: "lf-b" }
   ];
-  var subText = "half designer, half developer \u2014 let me show you around.";
+  var subText = "half designer, half developer";
   var typeName = document.getElementById("type-name");
   var typeSub = document.getElementById("type-sub");
   var caret1 = document.getElementById("caret1");
