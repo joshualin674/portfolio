@@ -57,6 +57,10 @@
 
   /* Geometry — Figma-exact */
   --card-w: calc(558px * var(--s));
+  /* distance from the focused card's center to a peek's center:
+     half the focused card + half the (scaled) peek + a real gap.
+     Derived from --card-w so cards can never overlap at any size. */
+  --peek-offset: calc(var(--card-w) * 0.95 + 226px * var(--s));
   --card-h: calc(376px * var(--s));      /* landscape */
   --radius-card: calc(15px * var(--s));
   --radius-pill: 60px;
@@ -297,6 +301,9 @@ a { color: inherit; text-decoration: none; }
 .stage {
   position: absolute; inset: 0;
   z-index: 2;
+  --drag-x: 0px; /* live finger offset, inherited by every .unit —
+    one shared value moves the whole carousel in lockstep, so relative
+    spacing can never change and cards can never overlap mid-drag */
   touch-action: pan-y; /* claim horizontal gestures for the swipe JS —
     otherwise iOS/Android can eat them as edge-navigation first */
 }
@@ -306,40 +313,39 @@ a { color: inherit; text-decoration: none; }
   display: flex; flex-direction: column;
   align-items: center; gap: 0; /* tags + connectors sit flush on the card */
   transform-origin: center center;
+  translate: calc(-50% + var(--drag-x)) var(--ty); /* pre-state default */
   transition: transform var(--transition-card), translate var(--transition-card),
               opacity var(--transition-card), left var(--transition-card),
               filter var(--transition-card), scale var(--transition-card);
   will-change: transform, translate, scale, opacity, filter;
 }
 .unit.is-focused {
-  transform: translate(-50%, var(--ty));
+  translate: calc(-50% + var(--drag-x)) var(--ty);
   scale: 1;
   opacity: 1; z-index: 3;
 }
 .unit.is-peek-left, .unit.is-peek-right,
 .unit.is-hidden-left, .unit.is-hidden-right {
-  scale: var(--peek-scale); /* standalone now — see the transform
-    rules above; keeps JS free to animate this independently
-    without compounding against an embedded scale() */
+  scale: var(--peek-scale); /* standalone, never inside transform —
+    keeps JS free to animate it without compounding, and keeps the
+    growth centered rather than skewed toward one corner */
 }
+/* While a finger/mouse is down, cards follow --drag-x with no easing */
+.stage.is-dragging .unit { transition: none; }
 .unit.is-peek-left {
-  left: 0;
-  transform: translate(-50%, var(--ty));
+  translate: calc(-50% - var(--peek-offset) + var(--drag-x)) var(--ty);
   opacity: 0.71; filter: blur(1px); z-index: 2;
 }
 .unit.is-peek-right {
-  left: 100%;
-  transform: translate(-50%, var(--ty));
+  translate: calc(-50% + var(--peek-offset) + var(--drag-x)) var(--ty);
   opacity: 0.71; filter: blur(1px); z-index: 2;
 }
 .unit.is-hidden-left {
-  left: 0;
-  transform: translate(-160%, var(--ty));
+  translate: calc(-50% - var(--peek-offset) * 2 + var(--drag-x)) var(--ty);
   opacity: 0; z-index: 1; pointer-events: none;
 }
 .unit.is-hidden-right {
-  left: 100%;
-  transform: translate(60%, var(--ty));
+  translate: calc(-50% + var(--peek-offset) * 2 + var(--drag-x)) var(--ty);
   opacity: 0; z-index: 1; pointer-events: none;
 }
 
@@ -906,19 +912,9 @@ body.no-splash .page > * { opacity: 1; transition: none; }
   .case-pad { padding-top: 76px; } /* content clears the close button */
   .case-next img { width: 96px; height: 64px; }
 
-  /* Mobile positions every slot from the SAME left:50% anchor, offset via
-     the `translate` property. Two reasons this beats transform here:
-     (a) translate applies after `scale`, so the offset isn't multiplied
-     by the peek shrink — that coupling is what made the left and right
-     overlaps differ (105px vs 75px) and read as "the middle card is
-     closer to the first one"; (b) the offset is derived from --card-w,
-     so the gap between cards is guaranteed by construction. */
-  .unit { top: 50%; transform: none; translate: -50% var(--ty); }
-  .unit.is-focused    { transform: none; translate: -50% var(--ty); }
-  .unit.is-peek-left  { left: 50%; transform: none; translate: calc(-50% - var(--peek-offset)) var(--ty); }
-  .unit.is-peek-right { left: 50%; transform: none; translate: calc(-50% + var(--peek-offset)) var(--ty); }
-  .unit.is-hidden-left  { left: 50%; transform: none; translate: calc(-50% - var(--peek-offset) * 2) var(--ty); }
-  .unit.is-hidden-right { left: 50%; transform: none; translate: calc(-50% + var(--peek-offset) * 2) var(--ty); }
+  /* Positioning rules are shared with desktop now — only --peek-offset
+     differs (set in the mobile token block above). */
+  .unit { top: 50%; }
 
   .dots { top: auto; bottom: 64px; }
   .footer { position: fixed; bottom: 14px; font-size: 18px; z-index: 20; }
@@ -1994,8 +1990,8 @@ body[data-mode="play"] .doodle.play-only { display: block; }
         peekLeft: stageEl.querySelector(".unit.is-peek-left"),
         peekRight: stageEl.querySelector(".unit.is-peek-right")
       };
-      [snap.focused, snap.peekLeft, snap.peekRight]
-        .forEach(function (el) { if (el) el.style.transition = "none"; });
+      stageEl.classList.add("is-dragging"); /* suppresses easing on ALL
+        units, including the hidden ones that now ride along via --drag-x */
     }
 
     /* Returns true once the gesture has locked horizontal — callers use
@@ -2010,6 +2006,10 @@ body[data-mode="play"] .doodle.play-only { display: block; }
       }
       if (!touchLocked) return false;
       if (guardFn && guardFn()) return true;
+
+      /* the whole carousel follows the finger 1:1 — one shared value,
+         so every card moves in perfect lockstep and spacing is fixed */
+      stageEl.style.setProperty("--drag-x", dx + "px");
 
       var t = Math.max(-1, Math.min(1, dx / REVEAL_PX));
       var a = Math.abs(t);
@@ -2046,6 +2046,11 @@ body[data-mode="play"] .doodle.play-only { display: block; }
       var wasLocked = touchLocked;
       var els = snap ? [snap.focused, snap.peekLeft, snap.peekRight] : [];
       touchX = touchY = null; touchLocked = null;
+
+      /* re-enable easing FIRST, then drop the offset — so the return to
+         rest and the (possible) role change animate together as one */
+      stageEl.classList.remove("is-dragging");
+      stageEl.style.setProperty("--drag-x", "0px");
 
       if (!wasLocked || (guardFn && guardFn())) { els.forEach(clearInline); return; }
       if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
@@ -2366,7 +2371,7 @@ body[data-mode="play"] .doodle.play-only { display: block; }
     { c: "J" }, { c: "o" }, { c: "s", cls: "lf-bi" }, { c: "h" }, { c: "\u00A0" },
     { c: "L" }, { c: "i" }, { c: "n", cls: "lf-b" }
   ];
-  var subText = "half designer, half developer";
+  var subText = "half designer, half developer \u2014 let me show you around.";
   var typeName = document.getElementById("type-name");
   var typeSub = document.getElementById("type-sub");
   var caret1 = document.getElementById("caret1");
