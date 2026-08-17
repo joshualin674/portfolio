@@ -343,8 +343,11 @@ a { color: inherit; text-decoration: none; }
   transition: transform var(--transition-card), translate var(--transition-card),
               opacity var(--transition-card), left var(--transition-card),
               filter var(--transition-card), scale var(--transition-card);
-  will-change: transform, translate, scale, opacity, filter;
+  /* No standing will-change here: a permanent hint on every card keeps
+     GPU layers alive for elements that only move occasionally. It's
+     applied below only while a drag is actually in progress. */
 }
+.stage.is-dragging .unit { will-change: translate, scale, opacity, filter; }
 .unit.is-focused {
   translate: calc(-50% + var(--drag-x)) var(--ty);
   scale: 1;
@@ -358,6 +361,16 @@ a { color: inherit; text-decoration: none; }
 }
 /* While a finger/mouse is down, cards follow --drag-x with no easing */
 .stage.is-dragging .unit { transition: none; }
+/* Multi-step jumps (e.g. the explore-more chain looping from the last
+   project back to the first) move every card across the whole stage at
+   once — cards fly through each other and it reads as broken. Snap
+   those into place instead of animating them. */
+.stage.is-jumping .unit { transition: none; }
+/* While a case study is open, the carousel behind it repositions without
+   animating — there's no value in watching cards slide behind frosted
+   glass, and it removes any chance of a half-finished transition showing
+   through when the overlay closes. */
+body.case-open .unit { transition: none; }
 .unit.is-peek-left {
   translate: calc(-50% - var(--peek-offset) + var(--drag-x)) var(--ty);
   opacity: 0.71; filter: blur(1px); z-index: 2;
@@ -650,7 +663,14 @@ body.custom-cursor .cursor { display: block; }
 body.case-open .case-close { display: flex; }
 /* While reading, freeze the homepage behind the glass — the browser can
    cache the blurred backdrop instead of recomputing it every frame. */
-body.case-open .page * { animation-play-state: paused !important; }
+body.case-open .doodle .wing-a,
+body.case-open .doodle .wing-b,
+body.case-open .symbol { animation-play-state: paused !important; }
+/* NOT the carousel's per-card animations (pulse / tag float / connector):
+   those classes move between cards when the carousel changes behind the
+   overlay, and a paused animation re-assigned to a different card resumes
+   from a frozen mid-cycle state on an element that just jumped — which
+   reads as the background glitching. Let them run; they're cheap. */
 .case-wrap {
   position: relative; /* anchors .case-close to the panel's own corner */
   width: min(1100px, 94vw);
@@ -1040,6 +1060,8 @@ body[data-mode="play"] .doodle.play-only { display: block; }
 .symbol-field {
   position: fixed; inset: 0; z-index: 0;
   pointer-events: none; overflow: hidden;
+  filter: blur(1.5px); /* ONE blur pass for the whole field, instead of
+    a separate filter on each of the 50 glyphs */
 }
 .symbol {
   position: absolute;
@@ -1050,7 +1072,8 @@ body[data-mode="play"] .doodle.play-only { display: block; }
   --rot: 0deg;
   --op: 0.16;
   animation: symbolFall 11s ease-in-out infinite;
-  will-change: transform, opacity;
+  /* deliberately NO will-change: 50 glyphs x a forced layer each is a
+     real memory/compositing cost for an ambient background texture */
 }
 @keyframes symbolFall {
   0%   { opacity: 0; transform: translateY(-8px) rotate(var(--rot)); }
@@ -1058,56 +1081,56 @@ body[data-mode="play"] .doodle.play-only { display: block; }
   88%  { opacity: var(--op); }
   100% { opacity: 0; transform: translateY(24px) rotate(var(--rot)); }
 }
-.symbol:nth-child(1) { left: 32.4%; top: 16.9%; font-size: 25px; filter: blur(1.6px); --rot: 13deg; --op: 0.11; animation-duration: 12.1s; animation-delay: -11.0s; font-style: italic; }
-.symbol:nth-child(2) { right: 46.2%; top: 8.4%; font-size: 23px; filter: blur(1.7px); --rot: -26deg; --op: 0.21; animation-duration: 12.0s; animation-delay: -4.8s; font-style: italic; }
-.symbol:nth-child(3) { right: 17.3%; top: 29.6%; font-size: 14px; filter: blur(1.3px); --rot: -10deg; --op: 0.11; animation-duration: 8.7s; animation-delay: -5.0s; font-style: italic; }
-.symbol:nth-child(4) { left: 45.8%; top: 88.0%; font-size: 19px; filter: blur(1.1px); --rot: -2deg; --op: 0.13; animation-duration: 8.6s; animation-delay: -2.6s; }
-.symbol:nth-child(5) { left: 8.9%; top: 50.1%; font-size: 15px; filter: blur(2.2px); --rot: 20deg; --op: 0.14; animation-duration: 8.3s; animation-delay: -5.5s; }
-.symbol:nth-child(6) { right: 15.7%; top: 31.9%; font-size: 26px; filter: blur(1.7px); --rot: 25deg; --op: 0.17; animation-duration: 8.5s; animation-delay: -0.8s; }
-.symbol:nth-child(7) { left: 8.1%; top: 70.3%; font-size: 18px; filter: blur(1.8px); --rot: 24deg; --op: 0.17; animation-duration: 10.0s; animation-delay: -3.9s; font-style: italic; }
-.symbol:nth-child(8) { left: 45.4%; top: 18.5%; font-size: 14px; filter: blur(2.0px); --rot: -17deg; --op: 0.11; animation-duration: 13.2s; animation-delay: -5.3s; }
-.symbol:nth-child(9) { left: 17.6%; top: 40.0%; font-size: 17px; filter: blur(1.4px); --rot: 2deg; --op: 0.12; animation-duration: 12.9s; animation-delay: -12.7s; }
-.symbol:nth-child(10) { left: 23.7%; top: 10.6%; font-size: 14px; filter: blur(0.8px); --rot: -10deg; --op: 0.18; animation-duration: 9.8s; animation-delay: -0.0s; }
-.symbol:nth-child(11) { right: 44.8%; top: 90.7%; font-size: 26px; filter: blur(1.7px); --rot: -27deg; --op: 0.16; animation-duration: 11.2s; animation-delay: -9.8s; }
-.symbol:nth-child(12) { left: 39.6%; top: 20.5%; font-size: 33px; filter: blur(1.0px); --rot: -27deg; --op: 0.15; animation-duration: 8.7s; animation-delay: -4.9s; }
-.symbol:nth-child(13) { right: 40.3%; top: 9.5%; font-size: 16px; filter: blur(1.8px); --rot: 11deg scaleX(-1); --op: 0.15; animation-duration: 12.2s; animation-delay: -5.8s; }
-.symbol:nth-child(14) { right: 6.1%; top: 47.2%; font-size: 18px; filter: blur(1.9px); --rot: 0deg; --op: 0.12; animation-duration: 11.4s; animation-delay: -7.9s; }
-.symbol:nth-child(15) { right: 8.5%; top: 36.3%; font-size: 26px; filter: blur(1.9px); --rot: 5deg; --op: 0.21; animation-duration: 14.8s; animation-delay: -12.8s; }
-.symbol:nth-child(16) { left: 36.5%; top: 18.4%; font-size: 28px; filter: blur(2.0px); --rot: 9deg; --op: 0.16; animation-duration: 12.5s; animation-delay: -7.7s; }
-.symbol:nth-child(17) { left: 20.3%; top: 25.0%; font-size: 20px; filter: blur(1.1px); --rot: 30deg scaleX(-1); --op: 0.2; animation-duration: 10.5s; animation-delay: -0.3s; }
-.symbol:nth-child(18) { left: 26.4%; top: 66.7%; font-size: 32px; filter: blur(2.2px); --rot: 11deg; --op: 0.15; animation-duration: 14.7s; animation-delay: -5.4s; }
-.symbol:nth-child(19) { left: 20.5%; top: 21.8%; font-size: 25px; filter: blur(2.1px); --rot: 28deg; --op: 0.21; animation-duration: 14.4s; animation-delay: -5.0s; }
-.symbol:nth-child(20) { left: 13.3%; top: 38.7%; font-size: 27px; filter: blur(2.1px); --rot: 22deg; --op: 0.12; animation-duration: 13.5s; animation-delay: -4.5s; }
-.symbol:nth-child(21) { right: 9.0%; top: 69.7%; font-size: 15px; filter: blur(1.0px); --rot: 26deg; --op: 0.12; animation-duration: 13.6s; animation-delay: -2.0s; }
-.symbol:nth-child(22) { right: 46.4%; top: 15.1%; font-size: 11px; filter: blur(1.8px); --rot: -16deg; --op: 0.22; animation-duration: 11.0s; animation-delay: -9.6s; }
-.symbol:nth-child(23) { left: 25.7%; top: 30.0%; font-size: 16px; filter: blur(1.2px); --rot: 20deg; --op: 0.17; animation-duration: 13.8s; animation-delay: -0.8s; }
-.symbol:nth-child(24) { right: 15.5%; top: 15.0%; font-size: 14px; filter: blur(2.1px); --rot: -10deg scaleX(-1); --op: 0.16; animation-duration: 12.3s; animation-delay: -9.5s; }
-.symbol:nth-child(25) { right: 39.8%; top: 14.1%; font-size: 12px; filter: blur(1.6px); --rot: 28deg; --op: 0.18; animation-duration: 13.5s; animation-delay: -1.4s; }
-.symbol:nth-child(26) { right: 26.6%; top: 86.9%; font-size: 21px; filter: blur(1.6px); --rot: 32deg; --op: 0.17; animation-duration: 9.4s; animation-delay: -2.6s; }
-.symbol:nth-child(27) { right: 48.8%; top: 83.6%; font-size: 31px; filter: blur(2.1px); --rot: -8deg scaleX(-1); --op: 0.21; animation-duration: 13.9s; animation-delay: -1.9s; }
-.symbol:nth-child(28) { left: 8.8%; top: 25.1%; font-size: 13px; filter: blur(2.0px); --rot: -14deg; --op: 0.18; animation-duration: 14.6s; animation-delay: -9.4s; }
-.symbol:nth-child(29) { left: 14.9%; top: 46.0%; font-size: 27px; filter: blur(2.1px); --rot: -13deg; --op: 0.11; animation-duration: 14.9s; animation-delay: -12.4s; }
-.symbol:nth-child(30) { left: 20.4%; top: 32.3%; font-size: 27px; filter: blur(1.6px); --rot: 23deg; --op: 0.1; animation-duration: 12.9s; animation-delay: -5.0s; }
-.symbol:nth-child(31) { right: 7.7%; top: 13.4%; font-size: 31px; filter: blur(2.1px); --rot: -23deg; --op: 0.13; animation-duration: 9.9s; animation-delay: -0.4s; }
-.symbol:nth-child(32) { left: 14.2%; top: 41.8%; font-size: 31px; filter: blur(1.2px); --rot: -14deg; --op: 0.2; animation-duration: 11.8s; animation-delay: -6.1s; }
-.symbol:nth-child(33) { left: 19.2%; top: 85.4%; font-size: 17px; filter: blur(0.9px); --rot: 0deg scaleX(-1); --op: 0.1; animation-duration: 8.6s; animation-delay: -7.4s; }
-.symbol:nth-child(34) { right: 46.0%; top: 88.3%; font-size: 17px; filter: blur(1.6px); --rot: -3deg; --op: 0.12; animation-duration: 14.6s; animation-delay: -14.2s; }
-.symbol:nth-child(35) { right: 10.4%; top: 60.8%; font-size: 23px; filter: blur(1.5px); --rot: -11deg; --op: 0.12; animation-duration: 9.9s; animation-delay: -8.0s; font-style: italic; }
-.symbol:nth-child(36) { left: 3.7%; top: 49.5%; font-size: 33px; filter: blur(1.2px); --rot: 24deg; --op: 0.16; animation-duration: 8.7s; animation-delay: -7.1s; }
-.symbol:nth-child(37) { right: 19.5%; top: 39.2%; font-size: 22px; filter: blur(2.3px); --rot: 10deg; --op: 0.18; animation-duration: 9.4s; animation-delay: -8.3s; }
-.symbol:nth-child(38) { right: 5.0%; top: 93.3%; font-size: 29px; filter: blur(1.7px); --rot: -1deg; --op: 0.1; animation-duration: 11.0s; animation-delay: -0.6s; }
-.symbol:nth-child(39) { left: 49.6%; top: 92.3%; font-size: 24px; filter: blur(0.9px); --rot: -10deg; --op: 0.18; animation-duration: 9.1s; animation-delay: -4.1s; }
-.symbol:nth-child(40) { right: 6.6%; top: 53.3%; font-size: 16px; filter: blur(1.3px); --rot: 12deg scaleX(-1); --op: 0.22; animation-duration: 9.3s; animation-delay: -3.1s; }
-.symbol:nth-child(41) { right: 25.0%; top: 11.4%; font-size: 29px; filter: blur(1.7px); --rot: 17deg; --op: 0.12; animation-duration: 8.2s; animation-delay: -2.5s; }
-.symbol:nth-child(42) { right: 15.4%; top: 38.8%; font-size: 18px; filter: blur(1.0px); --rot: -15deg; --op: 0.22; animation-duration: 8.3s; animation-delay: -6.9s; }
-.symbol:nth-child(43) { left: 15.1%; top: 51.2%; font-size: 22px; filter: blur(2.0px); --rot: -4deg; --op: 0.2; animation-duration: 8.6s; animation-delay: -0.4s; }
-.symbol:nth-child(44) { left: 6.8%; top: 4.7%; font-size: 23px; filter: blur(1.2px); --rot: 25deg; --op: 0.13; animation-duration: 13.6s; animation-delay: -10.2s; }
-.symbol:nth-child(45) { right: 36.0%; top: 9.1%; font-size: 27px; filter: blur(0.9px); --rot: 0deg; --op: 0.13; animation-duration: 9.6s; animation-delay: -7.3s; }
-.symbol:nth-child(46) { left: 45.3%; top: 80.8%; font-size: 13px; filter: blur(1.2px); --rot: -28deg scaleX(-1); --op: 0.21; animation-duration: 12.3s; animation-delay: -7.9s; }
-.symbol:nth-child(47) { left: 25.9%; top: 71.4%; font-size: 18px; filter: blur(0.8px); --rot: -26deg scaleX(-1); --op: 0.17; animation-duration: 11.4s; animation-delay: -11.1s; }
-.symbol:nth-child(48) { right: 25.9%; top: 94.4%; font-size: 23px; filter: blur(0.9px); --rot: 27deg; --op: 0.14; animation-duration: 8.1s; animation-delay: -3.7s; }
-.symbol:nth-child(49) { left: 21.7%; top: 90.0%; font-size: 16px; filter: blur(1.0px); --rot: 0deg; --op: 0.17; animation-duration: 14.7s; animation-delay: -1.9s; }
-.symbol:nth-child(50) { right: 14.6%; top: 67.7%; font-size: 16px; filter: blur(1.5px); --rot: -30deg; --op: 0.21; animation-duration: 9.1s; animation-delay: -8.6s; }
+.symbol:nth-child(1) { left: 32.4%; top: 16.9%; font-size: 25px; --rot: 13deg; --op: 0.11; animation-duration: 12.1s; animation-delay: -11.0s; font-style: italic; }
+.symbol:nth-child(2) { right: 46.2%; top: 8.4%; font-size: 23px; --rot: -26deg; --op: 0.21; animation-duration: 12.0s; animation-delay: -4.8s; font-style: italic; }
+.symbol:nth-child(3) { right: 17.3%; top: 29.6%; font-size: 14px; --rot: -10deg; --op: 0.11; animation-duration: 8.7s; animation-delay: -5.0s; font-style: italic; }
+.symbol:nth-child(4) { left: 45.8%; top: 88.0%; font-size: 19px; --rot: -2deg; --op: 0.13; animation-duration: 8.6s; animation-delay: -2.6s; }
+.symbol:nth-child(5) { left: 8.9%; top: 50.1%; font-size: 15px; --rot: 20deg; --op: 0.14; animation-duration: 8.3s; animation-delay: -5.5s; }
+.symbol:nth-child(6) { right: 15.7%; top: 31.9%; font-size: 26px; --rot: 25deg; --op: 0.17; animation-duration: 8.5s; animation-delay: -0.8s; }
+.symbol:nth-child(7) { left: 8.1%; top: 70.3%; font-size: 18px; --rot: 24deg; --op: 0.17; animation-duration: 10.0s; animation-delay: -3.9s; font-style: italic; }
+.symbol:nth-child(8) { left: 45.4%; top: 18.5%; font-size: 14px; --rot: -17deg; --op: 0.11; animation-duration: 13.2s; animation-delay: -5.3s; }
+.symbol:nth-child(9) { left: 17.6%; top: 40.0%; font-size: 17px; --rot: 2deg; --op: 0.12; animation-duration: 12.9s; animation-delay: -12.7s; }
+.symbol:nth-child(10) { left: 23.7%; top: 10.6%; font-size: 14px; --rot: -10deg; --op: 0.18; animation-duration: 9.8s; animation-delay: -0.0s; }
+.symbol:nth-child(11) { right: 44.8%; top: 90.7%; font-size: 26px; --rot: -27deg; --op: 0.16; animation-duration: 11.2s; animation-delay: -9.8s; }
+.symbol:nth-child(12) { left: 39.6%; top: 20.5%; font-size: 33px; --rot: -27deg; --op: 0.15; animation-duration: 8.7s; animation-delay: -4.9s; }
+.symbol:nth-child(13) { right: 40.3%; top: 9.5%; font-size: 16px; --rot: 11deg scaleX(-1); --op: 0.15; animation-duration: 12.2s; animation-delay: -5.8s; }
+.symbol:nth-child(14) { right: 6.1%; top: 47.2%; font-size: 18px; --rot: 0deg; --op: 0.12; animation-duration: 11.4s; animation-delay: -7.9s; }
+.symbol:nth-child(15) { right: 8.5%; top: 36.3%; font-size: 26px; --rot: 5deg; --op: 0.21; animation-duration: 14.8s; animation-delay: -12.8s; }
+.symbol:nth-child(16) { left: 36.5%; top: 18.4%; font-size: 28px; --rot: 9deg; --op: 0.16; animation-duration: 12.5s; animation-delay: -7.7s; }
+.symbol:nth-child(17) { left: 20.3%; top: 25.0%; font-size: 20px; --rot: 30deg scaleX(-1); --op: 0.2; animation-duration: 10.5s; animation-delay: -0.3s; }
+.symbol:nth-child(18) { left: 26.4%; top: 66.7%; font-size: 32px; --rot: 11deg; --op: 0.15; animation-duration: 14.7s; animation-delay: -5.4s; }
+.symbol:nth-child(19) { left: 20.5%; top: 21.8%; font-size: 25px; --rot: 28deg; --op: 0.21; animation-duration: 14.4s; animation-delay: -5.0s; }
+.symbol:nth-child(20) { left: 13.3%; top: 38.7%; font-size: 27px; --rot: 22deg; --op: 0.12; animation-duration: 13.5s; animation-delay: -4.5s; }
+.symbol:nth-child(21) { right: 9.0%; top: 69.7%; font-size: 15px; --rot: 26deg; --op: 0.12; animation-duration: 13.6s; animation-delay: -2.0s; }
+.symbol:nth-child(22) { right: 46.4%; top: 15.1%; font-size: 11px; --rot: -16deg; --op: 0.22; animation-duration: 11.0s; animation-delay: -9.6s; }
+.symbol:nth-child(23) { left: 25.7%; top: 30.0%; font-size: 16px; --rot: 20deg; --op: 0.17; animation-duration: 13.8s; animation-delay: -0.8s; }
+.symbol:nth-child(24) { right: 15.5%; top: 15.0%; font-size: 14px; --rot: -10deg scaleX(-1); --op: 0.16; animation-duration: 12.3s; animation-delay: -9.5s; }
+.symbol:nth-child(25) { right: 39.8%; top: 14.1%; font-size: 12px; --rot: 28deg; --op: 0.18; animation-duration: 13.5s; animation-delay: -1.4s; }
+.symbol:nth-child(26) { right: 26.6%; top: 86.9%; font-size: 21px; --rot: 32deg; --op: 0.17; animation-duration: 9.4s; animation-delay: -2.6s; }
+.symbol:nth-child(27) { right: 48.8%; top: 83.6%; font-size: 31px; --rot: -8deg scaleX(-1); --op: 0.21; animation-duration: 13.9s; animation-delay: -1.9s; }
+.symbol:nth-child(28) { left: 8.8%; top: 25.1%; font-size: 13px; --rot: -14deg; --op: 0.18; animation-duration: 14.6s; animation-delay: -9.4s; }
+.symbol:nth-child(29) { left: 14.9%; top: 46.0%; font-size: 27px; --rot: -13deg; --op: 0.11; animation-duration: 14.9s; animation-delay: -12.4s; }
+.symbol:nth-child(30) { left: 20.4%; top: 32.3%; font-size: 27px; --rot: 23deg; --op: 0.1; animation-duration: 12.9s; animation-delay: -5.0s; }
+.symbol:nth-child(31) { right: 7.7%; top: 13.4%; font-size: 31px; --rot: -23deg; --op: 0.13; animation-duration: 9.9s; animation-delay: -0.4s; }
+.symbol:nth-child(32) { left: 14.2%; top: 41.8%; font-size: 31px; --rot: -14deg; --op: 0.2; animation-duration: 11.8s; animation-delay: -6.1s; }
+.symbol:nth-child(33) { left: 19.2%; top: 85.4%; font-size: 17px; --rot: 0deg scaleX(-1); --op: 0.1; animation-duration: 8.6s; animation-delay: -7.4s; }
+.symbol:nth-child(34) { right: 46.0%; top: 88.3%; font-size: 17px; --rot: -3deg; --op: 0.12; animation-duration: 14.6s; animation-delay: -14.2s; }
+.symbol:nth-child(35) { right: 10.4%; top: 60.8%; font-size: 23px; --rot: -11deg; --op: 0.12; animation-duration: 9.9s; animation-delay: -8.0s; font-style: italic; }
+.symbol:nth-child(36) { left: 3.7%; top: 49.5%; font-size: 33px; --rot: 24deg; --op: 0.16; animation-duration: 8.7s; animation-delay: -7.1s; }
+.symbol:nth-child(37) { right: 19.5%; top: 39.2%; font-size: 22px; --rot: 10deg; --op: 0.18; animation-duration: 9.4s; animation-delay: -8.3s; }
+.symbol:nth-child(38) { right: 5.0%; top: 93.3%; font-size: 29px; --rot: -1deg; --op: 0.1; animation-duration: 11.0s; animation-delay: -0.6s; }
+.symbol:nth-child(39) { left: 49.6%; top: 92.3%; font-size: 24px; --rot: -10deg; --op: 0.18; animation-duration: 9.1s; animation-delay: -4.1s; }
+.symbol:nth-child(40) { right: 6.6%; top: 53.3%; font-size: 16px; --rot: 12deg scaleX(-1); --op: 0.22; animation-duration: 9.3s; animation-delay: -3.1s; }
+.symbol:nth-child(41) { right: 25.0%; top: 11.4%; font-size: 29px; --rot: 17deg; --op: 0.12; animation-duration: 8.2s; animation-delay: -2.5s; }
+.symbol:nth-child(42) { right: 15.4%; top: 38.8%; font-size: 18px; --rot: -15deg; --op: 0.22; animation-duration: 8.3s; animation-delay: -6.9s; }
+.symbol:nth-child(43) { left: 15.1%; top: 51.2%; font-size: 22px; --rot: -4deg; --op: 0.2; animation-duration: 8.6s; animation-delay: -0.4s; }
+.symbol:nth-child(44) { left: 6.8%; top: 4.7%; font-size: 23px; --rot: 25deg; --op: 0.13; animation-duration: 13.6s; animation-delay: -10.2s; }
+.symbol:nth-child(45) { right: 36.0%; top: 9.1%; font-size: 27px; --rot: 0deg; --op: 0.13; animation-duration: 9.6s; animation-delay: -7.3s; }
+.symbol:nth-child(46) { left: 45.3%; top: 80.8%; font-size: 13px; --rot: -28deg scaleX(-1); --op: 0.21; animation-duration: 12.3s; animation-delay: -7.9s; }
+.symbol:nth-child(47) { left: 25.9%; top: 71.4%; font-size: 18px; --rot: -26deg scaleX(-1); --op: 0.17; animation-duration: 11.4s; animation-delay: -11.1s; }
+.symbol:nth-child(48) { right: 25.9%; top: 94.4%; font-size: 23px; --rot: 27deg; --op: 0.14; animation-duration: 8.1s; animation-delay: -3.7s; }
+.symbol:nth-child(49) { left: 21.7%; top: 90.0%; font-size: 16px; --rot: 0deg; --op: 0.17; animation-duration: 14.7s; animation-delay: -1.9s; }
+.symbol:nth-child(50) { right: 14.6%; top: 67.7%; font-size: 16px; --rot: -30deg; --op: 0.21; animation-duration: 9.1s; animation-delay: -8.6s; }
 
 /* Second and third play flies — same wings/flap, staggered timing */
 
@@ -1149,6 +1172,14 @@ body[data-mode="play"] .doodle.play-only { display: block; }
   position: fixed; inset: 0; z-index: 300;
   opacity: 0;
   pointer-events: none;
+  /* display:none until it actually runs. Previously this element sat
+     over the whole viewport permanently with a live backdrop-filter
+     and a pinned GPU layer — the browser was blurring the entire page
+     continuously for an effect that lasts 420ms per click. */
+  display: none;
+}
+.mode-flash.is-active {
+  display: block;
   -webkit-backdrop-filter: blur(16px); /* constant — only opacity animates */
           backdrop-filter: blur(16px);
   will-change: opacity;
@@ -1983,6 +2014,7 @@ body[data-mode="play"] .doodle.play-only { display: block; }
      now triggers the recompute itself, correctly sequenced */
 
   /* ------- Linear carousel, symmetric edge peeks, no wrap ------- */
+  var stage = document.getElementById("stage");
   var units = Array.prototype.slice.call(document.querySelectorAll("#stage .unit"));
   var dots = Array.prototype.slice.call(document.querySelectorAll("#work-dots .dot"));
   var srPrev = document.getElementById("sr-prev");
@@ -2002,6 +2034,11 @@ body[data-mode="play"] .doodle.play-only { display: block; }
   }
 
   function render() {
+    /* Nothing should ever scroll horizontally here — but focus() and
+       scroll-into-view can nudge even an overflow:hidden container, which
+       shifts the whole layout sideways. Snap it back on every render. */
+    if (stage) stage.scrollLeft = 0;
+    if (document.scrollingElement) document.scrollingElement.scrollLeft = 0;
     units.forEach(function (unit, i) {
       var next = stateFor(i);
       unit.classList.remove("is-focused", "is-peek-left", "is-peek-right",
@@ -2023,7 +2060,24 @@ body[data-mode="play"] .doodle.play-only { display: block; }
 
   function next() { if (index < N - 1) { index++; render(); } }
   function prev() { if (index > 0) { index--; render(); } }
-  function goTo(i) { if (i !== index) { index = i; render(); } }
+  function goTo(i) {
+    if (i === index) return;
+    var isJump = Math.abs(i - index) > 1;
+    index = i;
+    if (isJump) {
+      /* place instantly — see .stage.is-jumping */
+      stage.classList.add("is-jumping");
+      render();
+      void stage.offsetWidth; /* flush the snapped positions... */
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () {
+          stage.classList.remove("is-jumping"); /* ...only after a real paint */
+        });
+      });
+    } else {
+      render();
+    }
+  }
   window.workGoTo = goTo;
 
   dots.forEach(function (d) {
@@ -2388,6 +2442,16 @@ body[data-mode="play"] .doodle.play-only { display: block; }
     var article = caseEls[key];
     if (!article) return;
     syncCarouselTo(key);
+    /* The carousel just moved. Re-point the focus-return target at the
+       card that is NOW focused — otherwise it still points at the card
+       the user originally clicked, which the jump parked far off-stage,
+       and focusing an off-screen element makes the browser scroll it
+       into view, shifting the whole layout sideways. */
+    var liveStage = document.body.dataset.mode === "play"
+      ? document.getElementById("play-stage")
+      : document.getElementById("stage");
+    var nowFocused = liveStage && liveStage.querySelector(".unit.is-focused .card");
+    if (nowFocused) lastFocusedCard = nowFocused;
     Object.keys(caseEls).forEach(function (k) {
       caseEls[k].classList.toggle("is-active", k === key);
     });
@@ -2396,14 +2460,14 @@ body[data-mode="play"] .doodle.play-only { display: block; }
     caseOverlay.classList.add("is-open");
     document.body.classList.add("case-open");
     if (!silent) { try { history.pushState(null, "", "#" + key); } catch (err) { location.hash = key; } }
-    caseCloseBtn.focus();
+    caseCloseBtn.focus({ preventScroll: true });
   }
   function closeCase(silent) {
     if (!caseOverlay.classList.contains("is-open")) return;
     caseOverlay.classList.remove("is-open");
     document.body.classList.remove("case-open");
     if (!silent) { try { history.pushState(null, "", location.pathname + location.search); } catch (err) { location.hash = ""; } }
-    if (lastFocusedCard) lastFocusedCard.focus();
+    if (lastFocusedCard) lastFocusedCard.focus({ preventScroll: true });
   }
   caseCloseBtn.addEventListener("click", function () { closeCase(false); });
   var progTick = false;
@@ -2644,7 +2708,21 @@ body[data-mode="play"] .doodle.play-only { display: block; }
     if (pNext) pNext.style.display = pIndex === pN - 1 ? "none" : "";
     if (window.recomputeNavZones) window.recomputeNavZones();
   }
-  window.playGoTo = function (i) { if (i !== pIndex && i >= 0 && i < pN) { pIndex = i; render(); } };
+  window.playGoTo = function (i) {
+    if (i === pIndex || i < 0 || i >= pN) return;
+    var isJump = Math.abs(i - pIndex) > 1;
+    pIndex = i;
+    if (isJump && pStage) {
+      pStage.classList.add("is-jumping");
+      render();
+      void pStage.offsetWidth;
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () { pStage.classList.remove("is-jumping"); });
+      });
+    } else {
+      render();
+    }
+  };
   window.playNext = function () { if (pIndex < pN - 1) { pIndex++; render(); } };
   window.playPrev = function () { if (pIndex > 0) { pIndex--; render(); } };
 
