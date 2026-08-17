@@ -648,7 +648,8 @@ body.custom-cursor .cursor { display: block; }
   padding: 5vh 18px;
   overflow: hidden;
   opacity: 0; pointer-events: none;
-  transition: opacity 300ms ease;
+  transition: opacity 300ms ease,
+              background-color 420ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 .case-overlay.is-open { opacity: 1; pointer-events: auto; }
 .case-close {
@@ -693,6 +694,26 @@ body.case-open .symbol { animation-play-state: paused !important; }
 .case-pad { padding: 26px clamp(18px, 4.5vw, 46px) 90px; }
 .case { display: none; }
 .case.is-active { display: block; }
+/* Switching projects inside the overlay used to be a hard cut
+   (display none -> block, nothing eased). Now the whole screen dims —
+   panel content fades down behind a veil AND the backdrop behind it
+   deepens — then it swaps while hidden and eases back up. Slow enough
+   to read as a deliberate beat rather than a flicker. */
+.case-scroll { transition: opacity 420ms cubic-bezier(0.4, 0, 0.2, 1); }
+.case-wrap.is-switching .case-scroll { opacity: 0; }
+.case-veil {
+  position: absolute; inset: 0; z-index: 5;
+  border-radius: inherit;
+  background: rgba(6, 6, 6, 0.55);
+  opacity: 0; pointer-events: none;
+  transition: opacity 420ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+.case-wrap.is-switching .case-veil { opacity: 1; }
+/* the backdrop behind the panel deepens in the same breath */
+body.case-switching .case-overlay { background: rgba(4, 4, 4, 0.86); }
+@media (prefers-reduced-motion: reduce) {
+  .case-scroll, .case-veil { transition: none; }
+}
 .case-meta { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 20px; }
 .case h1 {
   font-size: clamp(30px, 4.5vw, 46px); font-weight: 400;
@@ -878,7 +899,8 @@ body.case-open .symbol { animation-play-state: paused !important; }
   transition: transform 420ms ease-in, opacity 420ms ease-in;
 }
 .splash-sub {
-  font-size: calc(18px * var(--s)); color: var(--ink-85);
+  font-size: var(--fs-24); color: var(--ink-85); /* matches the site's
+    standard subtext size — descriptions, links, pills, footer */
   opacity: 1;
   min-height: 1.4em;
   transition: transform 420ms ease-in, opacity 420ms ease-in;
@@ -1966,6 +1988,7 @@ body[data-mode="play"] .doodle.play-only { display: block; }
 
     </div>
   </div>
+  <div class="case-veil" aria-hidden="true"></div>
   <button class="case-close" id="case-close" aria-label="Close case study">×</button>
   </div>
 </div>
@@ -2464,6 +2487,8 @@ body[data-mode="play"] .doodle.play-only { display: block; }
   }
   function closeCase(silent) {
     if (!caseOverlay.classList.contains("is-open")) return;
+    document.body.classList.remove("case-switching"); /* never leave the
+      deepened backdrop behind if the overlay closes mid-switch */
     caseOverlay.classList.remove("is-open");
     document.body.classList.remove("case-open");
     if (!silent) { try { history.pushState(null, "", location.pathname + location.search); } catch (err) { location.hash = ""; } }
@@ -2484,10 +2509,30 @@ body[data-mode="play"] .doodle.play-only { display: block; }
   caseOverlay.addEventListener("click", function (e) {
     if (e.target === caseOverlay) closeCase(false);
   });
+  var casePanelWrap = document.querySelector(".case-wrap");
+  var switchReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var switchTimer = null;
   Array.prototype.forEach.call(document.querySelectorAll("[data-open]"), function (btn) {
     btn.addEventListener("click", function () {
-      casePanel.scrollTop = 0;
-      openCase(btn.dataset.open, false);
+      var key = btn.dataset.open;
+      if (switchReduced || !casePanelWrap) {
+        casePanel.scrollTop = 0;
+        openCase(key, false);
+        return;
+      }
+      /* fade the current project down behind the veil, swap while it's
+         hidden, then fade the new one back up — no hard cut */
+      clearTimeout(switchTimer);
+      casePanelWrap.classList.add("is-switching");
+      document.body.classList.add("case-switching"); /* deepens the backdrop */
+      switchTimer = setTimeout(function () {
+        casePanel.scrollTop = 0;
+        openCase(key, false);
+        requestAnimationFrame(function () {
+          casePanelWrap.classList.remove("is-switching");
+          document.body.classList.remove("case-switching");
+        });
+      }, 420);
     });
   });
   /* ------- Expandable case-study images ------- */
@@ -2602,7 +2647,7 @@ body[data-mode="play"] .doodle.play-only { display: block; }
     { c: "J" }, { c: "o" }, { c: "s", cls: "lf-bi" }, { c: "h" }, { c: "\u00A0" },
     { c: "L" }, { c: "i" }, { c: "n", cls: "lf-b" }
   ];
-  var subText = "half designer, half developer \u2014 let me show you around.";
+  var subText = "half designer, half developer.";
   var typeName = document.getElementById("type-name");
   var typeSub = document.getElementById("type-sub");
   var caret1 = document.getElementById("caret1");
