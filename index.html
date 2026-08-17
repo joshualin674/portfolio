@@ -2051,6 +2051,13 @@ body[data-mode="play"] .doodle.play-only { display: block; }
        nothing at all mid-drag, since touchmove/touchend simply never
        fire for mouse input. */
     var touchX = null, touchY = null, touchLocked = null, snap = null;
+    var suppressClick = false;
+    /* capture phase = runs before the cards' own click handlers */
+    stageEl.addEventListener("click", function (e) {
+      if (!suppressClick) return;
+      e.stopPropagation();
+      e.preventDefault();
+    }, true);
     var peekScaleVal = parseFloat(
       getComputedStyle(document.documentElement).getPropertyValue("--peek-scale")
     ) || 0.9;
@@ -2137,6 +2144,15 @@ body[data-mode="play"] .doodle.play-only { display: block; }
          rest and the (possible) role change animate together as one */
       stageEl.classList.remove("is-dragging");
       stageEl.style.setProperty("--drag-x", "0px");
+
+      /* A mouse drag always ends with the browser firing a click on
+         whatever is under the cursor. After a real drag that's the
+         card the carousel just moved into place — which would open
+         its overlay. Swallow exactly that one click. */
+      if (wasLocked) {
+        suppressClick = true;
+        setTimeout(function () { suppressClick = false; }, 0);
+      }
 
       if (!wasLocked || (guardFn && guardFn())) { els.forEach(clearInline); return; }
       if (Math.abs(dx) > 40 && Math.abs(dx) > Math.abs(dy) * 1.5) {
