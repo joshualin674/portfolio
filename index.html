@@ -693,15 +693,24 @@ body.case-open .page * { animation-play-state: paused !important; }
   font-size: clamp(20px, 2.4vw, 25px);
   color: var(--ink-85); margin: 10px 0 8px;
 }
-/* Everything inside a case study reads in Arial — the narrow face is
-   kept only for the h1 title and the tag pills, which are display
-   elements rather than reading text. */
+/* Case-study prose reads in Helvetica; the narrow face is kept for the
+   display layer — title, tags, the small section labels (overview,
+   organization, takeaways...), the explore-more card, and the chat
+   line — so those still tie back to the homepage's voice. */
 .case, .case-next, .case-chat { font-family: var(--font-reading); }
-/* ...but the title and tags stay in the narrow display face */
-.case h1, .case .pill { font-family: var(--font-stack); }
-/* Section headers: bold + italic so hierarchy still reads clearly
-   now that they share the body font */
-.case h2, .case h3, .case-mini h4, .case-label, .case-next-title {
+.case h1,
+.case .pill,
+.case-label,
+.case-num,
+.case-next,
+.case-next-kicker,
+.case-next-title,
+.case-next-name,
+.case-chat { font-family: var(--font-stack); }
+/* Bold + italic on the headings that share the body font, so hierarchy
+   still reads clearly. The section labels and explore-more title are
+   back in the narrow display face and carry their own distinction. */
+.case h2, .case h3, .case-mini h4 {
   font-weight: 700; font-style: italic;
 }
 .case p {
