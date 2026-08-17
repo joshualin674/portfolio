@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
@@ -299,7 +299,8 @@ a { color: inherit; text-decoration: none; }
   background: var(--knob-grad);
   border: 0.5px solid var(--knob-border);
   border-radius: 60px;
-  box-shadow: var(--knob-glow);
+  /* no glow here — the border and gradient already lift it off the
+     track, and the drop shadow read as muddy at this size */
   transition: transform var(--transition-card);
 }
 .toggle[aria-checked="true"] .toggle-knob {
@@ -397,7 +398,9 @@ body.case-open .unit { transition: none; }
   background: var(--pill-grad);
   border: 0.3px solid var(--pill-border);
   border-radius: var(--radius-pill);
-  padding: calc(3px * var(--s)) calc(7.5px * var(--s));
+  padding: calc(4px * var(--s)) calc(13px * var(--s)); /* roomier ends —
+    fully-rounded pills need more horizontal padding than the curve
+    itself consumes; scales with the rest of the layout */
   font-size: var(--fs-24);
   color: var(--ink-70);
   white-space: nowrap;
@@ -714,17 +717,25 @@ body.case-switching .case-overlay { background: rgba(4, 4, 4, 0.86); }
 @media (prefers-reduced-motion: reduce) {
   .case-scroll, .case-veil { transition: none; }
 }
-.case-meta { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 20px; }
+.case-meta {
+  display: flex; flex-wrap: wrap; gap: 9px;
+  justify-content: center;
+  margin: 14px 0 24px; /* now sits BELOW the subtext */
+}
+/* Roomier pills in the overlay: the fully-rounded ends eat into the
+   usable width, so a tight horizontal padding reads as cramped. The
+   homepage's Figma-exact tag sizing is deliberately left alone. */
+.case-meta .pill { padding: 5px 15px; } /* slightly roomier still —
+   overlay text runs longer than the homepage's short tags */
 .case h1 {
   font-size: clamp(30px, 4.5vw, 46px); font-weight: 400;
   color: var(--ink-85); text-align: center; margin-bottom: 6px;
 }
 .case .case-sub {
+  font-family: var(--font-stack); /* display line, matches the homepage
+    card's bracketed description — narrow, not the reading face */
   text-align: center; color: var(--ink-50);
   font-size: clamp(17px, 2vw, 21px); margin-bottom: 18px;
-}
-.case-intro {
-  text-align: center; max-width: 620px; margin: 0 auto 26px;
 }
 .case h2 {
   font-size: clamp(24px, 3vw, 31px);
@@ -1590,15 +1601,14 @@ body[data-mode="play"] .doodle.play-only { display: block; }
 
     <!-- ============ PMT ============ -->
     <article class="case" id="case-pmt" data-case-name="Product Maintenance Team">
+      <h1><span class="tilde">~ </span>produc<span class="lf-b">t</span> maintenanc<span class="lf-b">e</span> team<span class="tilde"> ~</span></h1>
+      <p class="case-sub">[maintaining live nonprofit products]</p>
       <div class="case-meta">
         <span class="pill">product designer</span>
         <span class="pill">4 engineers · 1 pm</span>
         <span class="pill">3 weeks</span>
         <span class="pill">nonprofit tooling</span>
       </div>
-      <h1><span class="tilde">~ </span>produc<span class="lf-b">t</span> maintenanc<span class="lf-b">e</span> team<span class="tilde"> ~</span></h1>
-      <p class="case-sub">@ Bits of Good</p>
-      <p class="case-intro">I redesigned high-impact fixes for Bagel Rescue and AARF, with each intervention reducing manual work, preventing mistakes, and helping nonprofit admins move with confidence.</p>
       <img src="https://framerusercontent.com/images/zY9rxUMJFta2cb266MxMq6L10A.png?width=1832&height=1104" width="1832" height="1104" alt="Product Maintenance Team project overview" loading="lazy" decoding="async" />
 
       <div class="case-block">
@@ -1700,15 +1710,14 @@ body[data-mode="play"] .doodle.play-only { display: block; }
 
     <!-- ============ GT OIT ============ -->
     <article class="case" id="case-gtoit" data-case-name="GT OIT">
+      <h1><span class="tilde">~ </span>georgi<span class="lf-b">a</span> tech oi<span class="lf-b">t</span><span class="tilde"> ~</span></h1>
+      <p class="case-sub">[clarity &amp; hierarchy for campus web]</p>
       <div class="case-meta">
         <span class="pill">ui/ux designer</span>
         <span class="pill">design systems</span>
         <span class="pill">figma</span>
         <span class="pill">drupal + wordpress</span>
       </div>
-      <h1><span class="tilde">~ </span>georgi<span class="lf-b">a</span> tech oi<span class="lf-b">t</span><span class="tilde"> ~</span></h1>
-      <p class="case-sub">Center for Teaching &amp; Learning</p>
-      <p class="case-intro">I redesigned CTL pages and blog experiences inside OIT's design system, turning dense information into clearer reading paths for students, faculty, and site maintainers.</p>
       <img src="https://framerusercontent.com/images/IcLCwIYX8uJCYlpOIo6y6gFSr6M.png?width=2127&height=1202" width="2127" height="1202" alt="GT OIT website redesign preview" loading="lazy" decoding="async" />
 
       <div class="case-block">
@@ -1808,14 +1817,13 @@ body[data-mode="play"] .doodle.play-only { display: block; }
 
     <!-- ============ SPITFIRE ============ -->
     <article class="case" id="case-spitfire" data-case-name="Spitfire">
+      <h1><span class="tilde">~ </span>s<span class="lf-b">p</span>itfir<span class="lf-b">e</span><span class="tilde"> ~</span></h1>
+      <p class="case-sub">[an app for hot takes]</p>
       <div class="case-meta">
         <span class="pill">christy long + joshua lin</span>
         <span class="pill">product designer</span>
         <span class="pill">bootcamp</span>
       </div>
-      <h1><span class="tilde">~ </span>s<span class="lf-b">p</span>itfir<span class="lf-b">e</span><span class="tilde"> ~</span></h1>
-      <p class="case-sub">[an app for hot takes]</p>
-      <p class="case-intro">A social concept designed around hot takes, friend-based trust, and playful interaction — helping people share what they think to explore differing opinions.</p>
       <img src="https://framerusercontent.com/images/t5y3yp6t20SbL5r73wVT8oR8Ef4.jpg?width=2614&height=1802" width="2614" height="1802" alt="Spitfire hero" loading="lazy" decoding="async" />
 
       <div class="case-block">
@@ -1933,12 +1941,12 @@ body[data-mode="play"] .doodle.play-only { display: block; }
          slot to fill in, no case-next chain. Swap the .case-slot
          blocks for real content whenever it's ready. -->
     <article class="case" id="case-sandbox" data-case-name="annettocatchyou">
+      <h1><span class="tilde">~ </span>a<span class="lf-b">nn</span>ettoc<span class="lf-b">a</span>tchyou<span class="tilde"> ~</span></h1>
+      <p class="case-sub">[TODO: description]</p>
       <div class="case-meta">
         <span class="pill">sandbox</span>
         <span class="pill">publication</span>
       </div>
-      <h1><span class="tilde">~ </span>a<span class="lf-b">nn</span>ettoc<span class="lf-b">a</span>tchyou<span class="tilde"> ~</span></h1>
-      <p class="case-sub">[TODO: description]</p>
       <div class="case-slot case-slot-image">[Add a cover image here]</div>
       <div class="case-slot">[Add your project description here — what is this, what did you make, what was the process?]</div>
       <button class="case-next" data-open="genart">
@@ -1951,12 +1959,12 @@ body[data-mode="play"] .doodle.play-only { display: block; }
     </article>
 
     <article class="case" id="case-genart" data-case-name="bedbug the game">
+      <h1><span class="tilde">~ </span>bedb<span class="lf-b">u</span>g the g<span class="lf-b">a</span>me<span class="tilde"> ~</span></h1>
+      <p class="case-sub">[TODO: description]</p>
       <div class="case-meta">
         <span class="pill">game</span>
         <span class="pill">interactive</span>
       </div>
-      <h1><span class="tilde">~ </span>bedb<span class="lf-b">u</span>g the g<span class="lf-b">a</span>me<span class="tilde"> ~</span></h1>
-      <p class="case-sub">[TODO: description]</p>
       <div class="case-slot case-slot-image">[Add a cover image here]</div>
       <div class="case-slot">[Add your project description here — what is this, what did you make, what was the process?]</div>
       <button class="case-next" data-open="aivideo">
@@ -1969,12 +1977,12 @@ body[data-mode="play"] .doodle.play-only { display: block; }
     </article>
 
     <article class="case" id="case-aivideo" data-case-name="generative art exhibit">
+      <h1><span class="tilde">~ </span>ge<span class="lf-b">n</span>erative art exhibi<span class="lf-b">t</span><span class="tilde"> ~</span></h1>
+      <p class="case-sub">[TODO: description]</p>
       <div class="case-meta">
         <span class="pill">generative art</span>
         <span class="pill">exhibit</span>
       </div>
-      <h1><span class="tilde">~ </span>ge<span class="lf-b">n</span>erative art exhibi<span class="lf-b">t</span><span class="tilde"> ~</span></h1>
-      <p class="case-sub">[TODO: description]</p>
       <div class="case-slot case-slot-image">[Add a cover image here]</div>
       <div class="case-slot">[Add your project description here — what is this, what did you make, what was the process?]</div>
       <button class="case-next" data-open="sandbox">
